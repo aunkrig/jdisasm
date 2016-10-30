@@ -795,7 +795,7 @@ class ConstantPool {
     }
 
     /**
-     * @return The number of entries in this {@link >ConstantPool}
+     * @return The number of entries in this {@link ConstantPool}
      */
     public int
     getSize() { return this.entries.length; }

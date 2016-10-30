@@ -91,7 +91,7 @@ interface CharStream {
     /**
      * If the next character on this stream equals the given character, it is consumed.
      *
-     * @return {@codo true} iff the next character on this stream equals the given character
+     * @return {@code true} iff the next character on this stream equals the given character
      */
     boolean peekRead(char c) throws IOException;
 

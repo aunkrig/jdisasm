@@ -603,7 +603,7 @@ class SignatureParser {
         public final Mode mode;
 
         /**
-         * Must be {@code} for {@link Mode#ANY}, non-{@code null} otherwise.
+         * Must be {@code} for {@link SignatureParser.TypeArgument.Mode#ANY}, non-{@code null} otherwise.
          *
          * @see TypeArgument
          */

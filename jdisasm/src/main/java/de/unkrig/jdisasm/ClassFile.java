@@ -659,7 +659,7 @@ class ClassFile {
     }
 
     /**
-     * The visitor for {@Attribute}.
+     * The visitor for {@link Attribute}.
      */
     public
     interface AttributeVisitor {
