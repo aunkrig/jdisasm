@@ -236,17 +236,13 @@ class Disassembler {
      * @param writer Where to write all output
      */
     public void
-    setOut(Writer writer) {
-        this.pw = writer instanceof PrintWriter ? (PrintWriter) writer : new PrintWriter(writer);
-    }
+    setOut(Writer writer) { this.pw = writer instanceof PrintWriter ? (PrintWriter) writer : new PrintWriter(writer); }
 
     /**
      * @param stream Where to write all output
      */
     public void
-    setOut(OutputStream stream) {
-        this.pw = new PrintWriter(stream);
-    }
+    setOut(OutputStream stream) { this.pw = new PrintWriter(stream); }
 
     /**
      * @param stream Where to write all output
@@ -260,42 +256,32 @@ class Disassembler {
      * Whether to include a constant pool dump, constant pool indexes, and hex dumps of all attributes in the output.
      */
     public void
-    setVerbose(boolean verbose) {
-        this.verbose = verbose;
-    }
+    setVerbose(boolean verbose) { this.verbose = verbose; }
 
     /**
      * Where to look for source files; {@code null} disables source file loading. Source file loading is disabled by
      * default.
      */
     public void
-    setSourceDirectory(File sourceDirectory) {
-        this.sourceDirectory = sourceDirectory;
-    }
+    setSourceDirectory(File sourceDirectory) { this.sourceDirectory = sourceDirectory; }
 
     /**
-     * @param hideLines Whether to not report source code line numbers
+     * @param value Whether source line numbers are suppressed in the disassembly (defaults to {@code false})
      */
     public void
-    setHideLines(boolean hideLines) {
-        this.hideLines = hideLines;
-    }
+    setHideLines(boolean hideLines) { this.hideLines = hideLines; }
 
     /**
-     * @param hideVars Whether to not report local variable names
+     * @param value Whether local variable names are suppressed in the disassembly (defaults to {@code false})
      */
     public void
-    setHideVars(boolean hideVars) {
-        this.hideVars = hideVars;
-    }
+    setHideVars(boolean hideVars) { this.hideVars = hideVars; }
 
     /**
      * @param symbolicLabels Whether use numeric labels ('#123') or symbolic labels /'L12') in the bytecode disassembly
      */
     public void
-    setSymbolicLabels(boolean symbolicLabels) {
-        this.symbolicLabels = symbolicLabels;
-    }
+    setSymbolicLabels(boolean symbolicLabels) { this.symbolicLabels = symbolicLabels; }
 
     private void print(String s)                       { this.pw.print(s); }
     private void println()                             { this.pw.println(); }
