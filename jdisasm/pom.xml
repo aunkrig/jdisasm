@@ -12,93 +12,100 @@
 	</properties>
 
 
-  <build>
-    <plugins>
-      <plugin>
-        <artifactId>maven-assembly-plugin</artifactId>
-        <version>2.6</version>
-        <configuration>
-          <descriptorRefs>
-            <descriptorRef>jar-with-dependencies</descriptorRef>
-          </descriptorRefs>
-        </configuration>
-        <executions>
-          <execution>
-            <id>make-assembly</id> <!-- this is used for inheritance merges -->
-            <phase>package</phase> <!-- bind to the packaging phase -->
-            <goals>
-              <goal>single</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<version>2.6</version>
+				<configuration>
+					<descriptorRefs>
+						<descriptorRef>jar-with-dependencies</descriptorRef>
+					</descriptorRefs>
+				</configuration>
+				<executions>
+					<execution>
+						<id>make-assembly</id> <!-- this is used for inheritance merges -->
+						<phase>package</phase> <!-- bind to the packaging phase -->
+						<goals>
+							<goal>single</goal>
+						</goals>
+						<configuration>
+							<archive>
+								<manifest>
+									<mainClass>de.unkrig.jdisasm.Disassembler</mainClass>
+								</manifest>
+							</archive>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-source-plugin</artifactId>
-        <version>2.4</version>
-        <executions>
-          <execution>
-            <id>attach-sources</id>
-            <goals>
-              <goal>jar</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<version>2.4</version>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 
-      <plugin>
-        <groupId>org.sonatype.plugins</groupId>
-        <artifactId>nexus-staging-maven-plugin</artifactId>
-        <version>1.6.7</version>
-        <extensions>true</extensions>
-        <configuration>
-           <serverId>ossrh</serverId>
-           <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-           <autoReleaseAfterClose>false</autoReleaseAfterClose>
-        </configuration>
-      </plugin>
+			<plugin>
+				<groupId>org.sonatype.plugins</groupId>
+				<artifactId>nexus-staging-maven-plugin</artifactId>
+				<version>1.6.7</version>
+				<extensions>true</extensions>
+				<configuration>
+					 <serverId>ossrh</serverId>
+					 <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+					 <autoReleaseAfterClose>false</autoReleaseAfterClose>
+				</configuration>
+			</plugin>
 
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-gpg-plugin</artifactId>
-        <version>1.5</version>
-        <executions>
-          <execution>
-            <id>sign-artifacts</id>
-            <phase>verify</phase>
-            <goals>
-              <goal>sign</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-gpg-plugin</artifactId>
+				<version>1.5</version>
+				<executions>
+					<execution>
+						<id>sign-artifacts</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>sign</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.10.4</version>
-        <executions>
-          <execution>
-            <id>attach-javadocs</id>
-            <goals>
-              <goal>jar</goal>
-            </goals>
-          </execution>
-        </executions>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>2.10.4</version>
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
 
-        <configuration>
-          <javadocExecutable>c:/Program Files/Java/jdk1.8.0_45/bin/javadoc.exe</javadocExecutable>
-          <author>false</author>
-          <use>false</use>
-          <version>false</version>
-          <additionalparam>-Xdoclint:none</additionalparam>
-          <encoding>UTF-8</encoding>
-          <quiet>true</quiet>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
+				<configuration>
+					<javadocExecutable>c:/Program Files/Java/jdk1.8.0_45/bin/javadoc.exe</javadocExecutable>
+					<author>false</author>
+					<use>false</use>
+					<version>false</version>
+					<additionalparam>-Xdoclint:none</additionalparam>
+					<encoding>UTF-8</encoding>
+					<quiet>true</quiet>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
 
 	<name>jdisasm</name>
 	<url>https://github.com/janino-compiler/janino/tree/master/de.unkrig.jdisasm</url>
@@ -111,22 +118,22 @@
 		<url>https://github.com/janino-compiler/janino/tree/master/de.unkrig.jdisasm</url>
 	</scm>
 
-  <licenses>
-    <license>
-      <name>New BSD License</name>
-      <url>https://raw.githubusercontent.com/janino-compiler/janino/master/LICENSE</url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
+	<licenses>
+		<license>
+			<name>New BSD License</name>
+			<url>https://raw.githubusercontent.com/janino-compiler/janino/master/LICENSE</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
 
-  <developers>
-    <developer>
-      <id>aunkrig</id>
-      <name>Arno Unkrig</name>
-      <roles>
-        <role>Developer</role>
-        <role>Release Manager</role>
-      </roles>
-    </developer>
-  </developers>
+	<developers>
+		<developer>
+			<id>aunkrig</id>
+			<name>Arno Unkrig</name>
+			<roles>
+				<role>Developer</role>
+				<role>Release Manager</role>
+			</roles>
+		</developer>
+	</developers>
 </project>
