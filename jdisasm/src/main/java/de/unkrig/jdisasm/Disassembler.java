@@ -2,7 +2,7 @@
 /*
  * JDISASM - A Java[TM] class file disassembler
  *
- * Copyright (c) 2001 Arno Unkrig. All rights reserved.
+ * Copyright (c) 2001, Arno Unkrig
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
@@ -266,13 +266,13 @@ class Disassembler {
     setSourceDirectory(File sourceDirectory) { this.sourceDirectory = sourceDirectory; }
 
     /**
-     * @param value Whether source line numbers are suppressed in the disassembly (defaults to {@code false})
+     * @param hideLines Whether source line numbers are suppressed in the disassembly (defaults to {@code false})
      */
     public void
     setHideLines(boolean hideLines) { this.hideLines = hideLines; }
 
     /**
-     * @param value Whether local variable names are suppressed in the disassembly (defaults to {@code false})
+     * @param hideVars Whether local variable names are suppressed in the disassembly (defaults to {@code false})
      */
     public void
     setHideVars(boolean hideVars) { this.hideVars = hideVars; }
