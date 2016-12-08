@@ -631,7 +631,7 @@ class ConstantPool {
                 i++;
                 break;
 
-            case 15:  // CONSTANT_MethodHandle_info
+            case 15: // CONSTANT_MethodHandle_info
                 re = new RawEntry2() {
 
                     final byte  referenceKind  = dis.readByte();
@@ -643,7 +643,7 @@ class ConstantPool {
                 i++;
                 break;
 
-            case 16:  // CONSTANT_MethodType_info
+            case 16: // CONSTANT_MethodType_info
                 re = new RawEntry2() {
 
                     final short descriptorIndex = dis.readShort();
@@ -654,7 +654,7 @@ class ConstantPool {
                 i++;
                 break;
 
-            case 18:  // CONSTANT_InvokeDynamic_info
+            case 18: // CONSTANT_InvokeDynamic_info
                 re = new RawEntry2() {
 
                     final short bootstrapMethodAttrIndex = dis.readShort();
