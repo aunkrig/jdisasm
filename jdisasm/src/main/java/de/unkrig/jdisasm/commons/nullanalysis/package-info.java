@@ -2,7 +2,7 @@
 /*
  * JDISASM - A Java[TM] class file disassembler
  *
- * Copyright (c) 2016 Arno Unkrig. All rights reserved.
+ * Copyright (c) 2016, Arno Unkrig
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
