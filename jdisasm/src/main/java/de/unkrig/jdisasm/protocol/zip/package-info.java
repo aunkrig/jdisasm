@@ -30,5 +30,5 @@
 @NotNullByDefault
 package de.unkrig.jdisasm.protocol.zip;
 
-import de.unkrig.jdisasm.commons.nullanalysis.NotNullByDefault;
+import de.unkrig.commons.nullanalysis.NotNullByDefault;
 

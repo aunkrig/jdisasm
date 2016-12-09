@@ -25,11 +25,11 @@
  */
 
 /**
- * A {@link de.unkrig.jdisasm.io.charstreamCharStream} is useful for implementing scanners: It provides a one-character
+ * A {@link CharStream} is useful for implementing scanners: It provides a one-character
  * lookahead and convenience methods for handling characters.
  */
 @NotNullByDefault
 package de.unkrig.jdisasm.io.charstream;
 
-import de.unkrig.jdisasm.commons.nullanalysis.NotNullByDefault;
+import de.unkrig.commons.nullanalysis.NotNullByDefault;
 

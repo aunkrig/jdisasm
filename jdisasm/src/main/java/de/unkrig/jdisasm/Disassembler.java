@@ -58,6 +58,8 @@ import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
+import de.unkrig.commons.nullanalysis.NotNullByDefault;
+import de.unkrig.commons.nullanalysis.Nullable;
 import de.unkrig.jdisasm.ClassFile.Annotation;
 import de.unkrig.jdisasm.ClassFile.AnnotationDefaultAttribute;
 import de.unkrig.jdisasm.ClassFile.Attribute;
@@ -102,8 +104,6 @@ import de.unkrig.jdisasm.SignatureParser.MethodTypeSignature;
 import de.unkrig.jdisasm.SignatureParser.SignatureException;
 import de.unkrig.jdisasm.SignatureParser.ThrowsSignature;
 import de.unkrig.jdisasm.SignatureParser.TypeSignature;
-import de.unkrig.jdisasm.commons.nullanalysis.NotNullByDefault;
-import de.unkrig.jdisasm.commons.nullanalysis.Nullable;
 
 /**
  * A Java bytecode disassembler, comparable to JAVAP, which is part of ORACLE's JDK.
@@ -156,7 +156,46 @@ class Disassembler {
 
     private enum AttributeContext { CLASS, FIELD, METHOD }
 
-    /**/
+    /**
+     * Generates a "disassembly document" from one or more Java class files.
+     * <dl>
+     *   <dt>{@ code jdisasm [} <var>options</var> {@code ]} <var>files</var></dt>
+     *   <dd>
+     *     Disassemble the given <var>files</var>, which must be Java class files.
+     *   </dd>
+     *   <dt>{@ code jdisasm [} <var>options</var> {@code ]}</dt>
+     *   <dd>
+     *     Read STDIN and disassemble; STDIN must be Java class file.
+     *   </dd>
+     * </dl>
+     * <h3>Options</h3>
+     * <dl>
+     *   <dt>{@code -o} <var>file</var></dt>
+     *   <dd>
+     *     Store the disassembly document in the <var>file</var>, instead of printing it to STDOUT
+     *   </dd>
+     *   <dt>{@code -verbose}</dt>
+     *   <dd>
+     *     Put more information into the disassembly document, e.g. the constant pool
+     *   </dd>
+     *   <dt>{@code -hide-lines}</dt>
+     *   <dd>
+     *     Don't print line number information
+     *   </dd>
+     *   <dt>{@code -hide-vars}</dt>
+     *   <dd>
+     *     Don't print local variable name information
+     *   </dd>
+     *   <dt>{@code -symbolic-labels}</dt>
+     *   <dd>
+     *     Use symbolic labels for offsets in the code attribute of methods
+     *   </dd>
+     *   <dt>{@code -help}</dt>
+     *   <dd>
+     *     Print this text and exit
+     *   </dd>
+     * </dl>
+     */
     public static void
     main(String[] args) throws IOException {
 

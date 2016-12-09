@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
+<project
+	xmlns="http://maven.apache.org/POM/4.0.0"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+>
 	<modelVersion>4.0.0</modelVersion>
+
 	<groupId>de.unkrig.jdisasm</groupId>
 	<artifactId>jdisasm</artifactId>
 	<version>1.0.1-SNAPSHOT</version>
@@ -11,6 +14,20 @@
 		<maven.compiler.target>1.6</maven.compiler.target>
 	</properties>
 
+	<dependencies>
+		<dependency>
+			<groupId>de.unkrig.commons</groupId>
+			<artifactId>commons-nullanalysis</artifactId>
+			<version>1.2.7-SNAPSHOT</version>
+		</dependency>
+	</dependencies>
+
+	<distributionManagement>
+		<snapshotRepository>
+			<id>ossrh</id>
+			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+		</snapshotRepository>
+	</distributionManagement>
 
 	<build>
 		<plugins>
@@ -68,21 +85,6 @@
 
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-gpg-plugin</artifactId>
-				<version>1.5</version>
-				<executions>
-					<execution>
-						<id>sign-artifacts</id>
-						<phase>verify</phase>
-						<goals>
-							<goal>sign</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
 				<version>2.10.4</version>
 				<executions>
@@ -91,29 +93,57 @@
 						<goals>
 							<goal>jar</goal>
 						</goals>
+
+						<configuration>
+							<author>false</author>
+							<use>false</use>
+							<version>false</version>
+							<additionalparam>-Xdoclint:none</additionalparam>
+							<quiet>true</quiet>
+							<encoding>UTF-8</encoding>
+						</configuration>
 					</execution>
 				</executions>
-
-				<configuration>
-					<javadocExecutable>c:/Program Files/Java/jdk1.8.0_45/bin/javadoc.exe</javadocExecutable>
-					<author>false</author>
-					<use>false</use>
-					<version>false</version>
-					<additionalparam>-Xdoclint:none</additionalparam>
-					<encoding>UTF-8</encoding>
-					<quiet>true</quiet>
-				</configuration>
 			</plugin>
 		</plugins>
 	</build>
 
+	<profiles>
+
+		<!-- Signs all artifacts with GPG (oss.sonatype.org requires that). -->
+		<profile>
+			<id>have_gpg</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<version>1.5</version>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
 	<name>jdisasm</name>
-	<url>https://github.com/janino-compiler/janino/tree/master/de.unkrig.jdisasm</url>
-	<description>A disassembler for Java .class files.</description>
+
+	<description>
+		A disassembler for Java .class files.
+	</description>
 	<organization>
 		<name>Arno Unkrig</name>
 		<url>http://unkrig.de/</url>
 	</organization>
+
 	<scm>
 		<url>https://github.com/janino-compiler/janino/tree/master/de.unkrig.jdisasm</url>
 	</scm>
@@ -136,4 +166,5 @@
 			</roles>
 		</developer>
 	</developers>
+	<url>https://github.com/janino-compiler/janino/tree/master/de.unkrig.jdisasm</url>
 </project>

@@ -32,4 +32,4 @@
 @NotNullByDefault
 package de.unkrig.jdisasm;
 
-import de.unkrig.jdisasm.commons.nullanalysis.NotNullByDefault;
+import de.unkrig.commons.nullanalysis.NotNullByDefault;

@@ -30,8 +30,8 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import de.unkrig.commons.nullanalysis.Nullable;
 import de.unkrig.jdisasm.SignatureParser.SignatureException;
-import de.unkrig.jdisasm.commons.nullanalysis.Nullable;
 
 /**
  * Representation of the "constant pool" in a Java class file.
@@ -329,8 +329,8 @@ class ConstantPool {
     public static
     class ConstantMethodHandleInfo implements ConstantPoolEntry {
 
-        public final short             referenceKind;
-        public final ConstantPoolEntry reference;
+        private final short             referenceKind;
+        private final ConstantPoolEntry reference;
 
         public
         ConstantMethodHandleInfo(byte referenceKind, ConstantPoolEntry reference) {
@@ -389,7 +389,11 @@ class ConstantPool {
         /**
          * {@code CONSTANT_InvokeDynamic_info.bytes}, see JVMS8 4.4.10
          */
-        public final short                   bootstrapMethodAttrIndex;
+        public final short bootstrapMethodAttrIndex;
+
+        /**
+         * {@code CONSTANT_InvokeDynamic_info.name_and_type_index}, see JVMS8 4.4.10
+         */
         public final ConstantNameAndTypeInfo nameAndType;
 
         public

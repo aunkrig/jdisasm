@@ -33,13 +33,13 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import de.unkrig.commons.nullanalysis.Nullable;
 import de.unkrig.jdisasm.ConstantPool.ConstantClassInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantMethodHandleInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantNameAndTypeInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantPoolEntry;
 import de.unkrig.jdisasm.ConstantPool.ConstantUtf8Info;
 import de.unkrig.jdisasm.SignatureParser.SignatureException;
-import de.unkrig.jdisasm.commons.nullanalysis.Nullable;
 
 /**
  * Representation of a Java class file.
@@ -515,6 +515,9 @@ class ClassFile {
             }
         }
 
+        /**
+         * @return The {@code BootstrapMethods} attribute of the class file
+         */
         public BootstrapMethodsAttribute
         getBootstrapMethodsAttribute() {
             BootstrapMethodsAttribute result = ClassFile.this.bootstrapMethodsAttribute;
@@ -978,11 +981,14 @@ class ClassFile {
         @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this); }
         @Override public String getName()                        { return "BootstrapMethods"; }
 
+        /**
+         * Representation of one entry in the "BootstrapMethods" attribute (JVMS8 4.7.23).
+         */
         public static
         class BootstrapMethod {
 
             private final ConstantMethodHandleInfo bootstrapMethod;
-            public final List<ConstantPoolEntry>   bootstrapArguments = new ArrayList<ConstantPoolEntry>();
+            private final List<ConstantPoolEntry>  bootstrapArguments = new ArrayList<ConstantPoolEntry>();
 
             public
             BootstrapMethod(DataInputStream dis, ClassFile cf) throws IOException {

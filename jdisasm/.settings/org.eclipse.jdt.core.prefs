@@ -1,10 +1,10 @@
 eclipse.preferences.version=1
 org.eclipse.jdt.core.compiler.annotation.inheritNullAnnotations=disabled
 org.eclipse.jdt.core.compiler.annotation.missingNonNullByDefaultAnnotation=warning
-org.eclipse.jdt.core.compiler.annotation.nonnull=de.unkrig.jdisasm.commons.nullanalysis.NotNull
-org.eclipse.jdt.core.compiler.annotation.nonnullbydefault=de.unkrig.jdisasm.commons.nullanalysis.NotNullByDefault
+org.eclipse.jdt.core.compiler.annotation.nonnull=de.unkrig.commons.nullanalysis.NotNull
+org.eclipse.jdt.core.compiler.annotation.nonnullbydefault=de.unkrig.commons.nullanalysis.NotNullByDefault
 org.eclipse.jdt.core.compiler.annotation.nonnullisdefault=disabled
-org.eclipse.jdt.core.compiler.annotation.nullable=de.unkrig.jdisasm.commons.nullanalysis.Nullable
+org.eclipse.jdt.core.compiler.annotation.nullable=de.unkrig.commons.nullanalysis.Nullable
 org.eclipse.jdt.core.compiler.annotation.nullanalysis=enabled
 org.eclipse.jdt.core.compiler.codegen.inlineJsrBytecode=enabled
 org.eclipse.jdt.core.compiler.codegen.targetPlatform=1.6
