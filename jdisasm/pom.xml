@@ -8,7 +8,7 @@
 
 	<groupId>de.unkrig.jdisasm</groupId>
 	<artifactId>jdisasm</artifactId>
-	<version>1.0.1-SNAPSHOT</version>
+	<version>1.0.1</version>
 	<properties>
 		<maven.compiler.source>1.6</maven.compiler.source>
 		<maven.compiler.target>1.6</maven.compiler.target>
@@ -18,7 +18,7 @@
 		<dependency>
 			<groupId>de.unkrig.commons</groupId>
 			<artifactId>commons-nullanalysis</artifactId>
-			<version>1.2.7-SNAPSHOT</version>
+			<version>1.2.7</version>
 		</dependency>
 	</dependencies>
 
