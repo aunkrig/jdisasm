@@ -2038,7 +2038,7 @@ class Disassembler {
                                     byte padByte = dis.readByte();
                                     if (padByte != (byte) 0) {
                                         throw new RuntimeException(
-                                            "'tableswitch' pad byte #"
+                                            "'lookupswitch' pad byte #"
                                             + i
                                             + " is not zero, but "
                                             + (0xff & padByte)
