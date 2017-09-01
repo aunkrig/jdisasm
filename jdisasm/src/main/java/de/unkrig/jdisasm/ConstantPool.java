@@ -50,7 +50,7 @@ class ConstantPool {
      * Representation of a CONSTANT_Class_info entry.
      */
     public static
-    class ConstantClassInfo implements ConstantPoolEntry {
+    class ConstantClassInfo implements ConstantClassOrFloatOrIntegerOrStringInfo {
 
         /**
          * Fully qualified (dot-separated) class name.
@@ -107,38 +107,11 @@ class ConstantPool {
      * Representation of a CONSTANT_Methodref_info entry.
      */
     public static
-    class ConstantMethodrefInfo implements ConstantPoolEntry {
-
-        /**
-         * {@code CONSTANT_Methodref_info.class_index}, see JVMS7 4.4.2
-         */
-        public final ConstantClassInfo clasS;
-
-        /**
-         * {@code CONSTANT_Methodref_info.name_and_type_index}, see JVMS7 4.4.2
-         */
-        public final ConstantNameAndTypeInfo nameAndType;
+    class ConstantMethodrefInfo extends ConstantInterfaceMethodrefOrMethodrefInfo {
 
         public
         ConstantMethodrefInfo(ConstantClassInfo clasS, ConstantNameAndTypeInfo nameAndType) {
-            this.clasS       = clasS;
-            this.nameAndType = nameAndType;
-        }
-
-        @Override public String
-        toString() {
-            try {
-                return (
-                    this.clasS.name
-                    + "::"
-                    + SignatureParser.decodeMethodDescriptor(this.nameAndType.descriptor.toString()).toString(
-                        this.clasS.name,
-                        this.nameAndType.name.toString()
-                    )
-                );
-            } catch (SignatureException e) {
-                return this.clasS.name + "::" + this.nameAndType;
-            }
+            super(clasS, nameAndType);
         }
     }
 
@@ -146,7 +119,26 @@ class ConstantPool {
      * Representation of a CONSTANT_InterfaceMethodref_info entry.
      */
     public static
-    class ConstantInterfaceMethodrefInfo implements ConstantPoolEntry {
+    class ConstantInterfaceMethodrefInfo extends ConstantInterfaceMethodrefOrMethodrefInfo {
+
+        public
+        ConstantInterfaceMethodrefInfo(ConstantClassInfo clasS, ConstantNameAndTypeInfo nameAndType) {
+            super(clasS, nameAndType);
+        }
+
+        @Override public String
+        toString() {
+
+            // Tweak the "toString()" to make it visually distinguishable from a non-interface methodref.
+            return super.toString().replace(":::", "::");
+        }
+    }
+
+    /**
+     * Representation of a CONSTANT_Methodref_info or a CONSTANT_InterfaceMethodref_info entry.
+     */
+    public static
+    class ConstantInterfaceMethodrefOrMethodrefInfo implements ConstantPoolEntry {
 
         /**
          * {@code CONSTANT_InterfaceMethodref_info.class_index}, see JVMS7 4.4.2
@@ -159,7 +151,7 @@ class ConstantPool {
         public final ConstantNameAndTypeInfo nameAndType;
 
         public
-        ConstantInterfaceMethodrefInfo(ConstantClassInfo clasS, ConstantNameAndTypeInfo nameAndType) {
+        ConstantInterfaceMethodrefOrMethodrefInfo(ConstantClassInfo clasS, ConstantNameAndTypeInfo nameAndType) {
             this.clasS       = clasS;
             this.nameAndType = nameAndType;
         }
@@ -185,7 +177,7 @@ class ConstantPool {
      * Representation of a CONSTANT_String_info entry.
      */
     public static
-    class ConstantStringInfo implements ConstantPoolEntry {
+    class ConstantStringInfo implements ConstantClassOrFloatOrIntegerOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrLongOrStringInfo { // SUPPRESS CHECKSTYLE LineLength
 
         /**
          * {@code CONSTANT_String_info.string_index}, see JVMS7 4.4.3
@@ -203,7 +195,7 @@ class ConstantPool {
      * Representation of a CONSTANT_Integer_info entry.
      */
     public static
-    class ConstantIntegerInfo implements ConstantPoolEntry {
+    class ConstantIntegerInfo implements ConstantClassOrFloatOrIntegerOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo { // SUPPRESS CHECKSTYLE LineLength
 
         /**
          * {@code CONSTANT_Integer_info.bytes}, see JVMS7 4.4.4
@@ -221,7 +213,7 @@ class ConstantPool {
      * Representation of a CONSTANT_Float_info entry.
      */
     public static
-    class ConstantFloatInfo implements ConstantPoolEntry {
+    class ConstantFloatInfo implements ConstantClassOrFloatOrIntegerOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo { // SUPPRESS CHECKSTYLE LineLength
 
         /**
          * {@code CONSTANT_Float_info.bytes}, see JVMS7 4.4.4
@@ -239,7 +231,7 @@ class ConstantPool {
      * Representation of a CONSTANT_Long_info entry.
      */
     public static
-    class ConstantLongInfo implements ConstantPoolEntry {
+    class ConstantLongInfo implements ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrLongOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo { // SUPPRESS CHECKSTYLE LineLength
 
         /**
          * {@code CONSTANT_Long_info.bytes}, see JVMS7 4.4.5
@@ -256,7 +248,7 @@ class ConstantPool {
      * Representation of a CONSTANT_Double_info entry.
      */
     public static
-    class ConstantDoubleInfo implements ConstantPoolEntry {
+    class ConstantDoubleInfo implements ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrLongOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo { // SUPPRESS CHECKSTYLE LineLength
 
         /**
          * {@code CONSTANT_Double_info.bytes}, see JVMS7 4.4.5
@@ -405,6 +397,33 @@ class ConstantPool {
         @Override public String
         toString() { return this.bootstrapMethodAttrIndex + ":" + this.nameAndType.name.toString(); }
     }
+
+    /**
+     * A throw-in interface for convenient access to class-or-float-or-integer-or-string operands (for opcodes {@code
+     * ldc} and {@code ldc_w}).
+     */
+    public
+    interface ConstantClassOrFloatOrIntegerOrStringInfo extends ConstantPoolEntry {}
+
+    /**
+     * A throw-in interface for convenient access to double-or-float-or-integer-or-long operands (for element values
+     * in annotations).
+     */
+    public
+    interface ConstantDoubleOrFloatOrIntegerOrLongInfo extends ConstantPoolEntry {}
+
+    /**
+     * A throw-in interface for convenient access to double-or-float-or-integer-or-long-or-string operands (for the
+     * {@code ConstantValue} attribute).
+     */
+    public
+    interface ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo extends ConstantPoolEntry {}
+
+    /**
+     * A throw-in interface for convenient access to double-or-long-or-string operands (for opcode {@code ldc2_w}).
+     */
+    public
+    interface ConstantDoubleOrLongOrStringInfo extends ConstantPoolEntry {}
 
     /**
      * The entries of this pool, as read from a class file by {@link #ConstantPool}.
@@ -676,7 +695,7 @@ class ConstantPool {
                 break;
 
             default:
-                throw new RuntimeException("Invalid cp_info tag '" + (int) tag + "' on entry #" + i + " of " + count);
+                throw new RuntimeException("Invalid cp_info tag " + (int) tag + " on entry #" + i + " of " + count);
             }
 
             rawEntries[idx] = re;
@@ -708,7 +727,7 @@ class ConstantPool {
         if (e == null) throw new NullPointerException("Unusable CP entry " + index);
         if (!clasS.isAssignableFrom(e.getClass())) {
             throw new RuntimeException(
-                "CP entry #" + index + " is a '" + e.getClass().getName() + "', not a '" + clasS.getName() + "'"
+                "CP entry #" + index + " is a " + e.getClass().getSimpleName() + ", not a " + clasS.getSimpleName()
             );
         }
 
@@ -734,68 +753,12 @@ class ConstantPool {
         if (e == null) throw new NullPointerException("Unusable CP entry " + index);
         if (!clasS.isAssignableFrom(e.getClass())) {
             throw new RuntimeException(
-                "CP entry #" + index + " is a '" + e.getClass().getName() + "', not a '" + clasS.getName() + "'"
+                "CP entry #" + index + " is a " + e.getClass().getSimpleName() + ", not a " + clasS.getSimpleName()
             );
         }
 
         @SuppressWarnings("unchecked") T result = (T) e;
         return result;
-    }
-
-    /**
-     * Checks that the indexed constant pool entry is of type {@code CONSTANT_(Integer|Float|Class|String)_info}, and
-     * returns its value converted to {@link String}.
-     */
-    public String
-    getIntegerFloatClassString(short index) {
-        ConstantPoolEntry e = this.get(index, ConstantPoolEntry.class);
-        if (e instanceof ConstantIntegerInfo) return e.toString();
-        if (e instanceof ConstantFloatInfo) return e.toString();
-        if (e instanceof ConstantClassInfo) return e.toString();
-        if (e instanceof ConstantStringInfo) return e.toString();
-        throw new ClassCastException("CP index " + (0xffff & index) + ": " + e);
-    }
-
-    /**
-     * Checks that the indexed constant pool entry is of type {@code CONSTANT_(Integer|Float|Long|Double|String)_info},
-     * and returns its value converted to {@link String}.
-     */
-    public String
-    getIntegerFloatLongDoubleString(short index) {
-        ConstantPoolEntry e = this.get(index, ConstantPoolEntry.class);
-        if (e instanceof ConstantIntegerInfo) return e.toString();
-        if (e instanceof ConstantFloatInfo) return e.toString();
-        if (e instanceof ConstantLongInfo) return e.toString();
-        if (e instanceof ConstantDoubleInfo) return e.toString();
-        if (e instanceof ConstantStringInfo) return ConstantPool.stringToJavaLiteral(((ConstantStringInfo) e).string);
-        throw new ClassCastException("CP index " + (0xffff & index) + ": " + e);
-    }
-
-    /**
-     * Checks that the indexed constant pool entry is of type {@code CONSTANT_(Long|Double|String)_info}, and returns
-     * its value converted to {@link String}.
-     */
-    public String
-    getLongDoubleString(short index) {
-        ConstantPoolEntry e = this.get(index, ConstantPoolEntry.class);
-        if (e instanceof ConstantLongInfo) return e.toString();
-        if (e instanceof ConstantDoubleInfo) return e.toString();
-        if (e instanceof ConstantStringInfo) return ConstantPool.stringToJavaLiteral(((ConstantStringInfo) e).string);
-        throw new ClassCastException("CP index " + (0xffff & index) + ": " + e);
-    }
-
-    /**
-     * Checks that the indexed constant pool entry is of type {@code CONSTANT_(Integer|Float|Long|Double)_info}, and
-     * returns its value converted to {@link String}.
-     */
-    public String
-    getIntegerFloatLongDouble(short index) {
-        ConstantPoolEntry e = this.get(index, ConstantPoolEntry.class);
-        if (e instanceof ConstantIntegerInfo) return e.toString();
-        if (e instanceof ConstantFloatInfo) return e.toString();
-        if (e instanceof ConstantLongInfo) return e.toString();
-        if (e instanceof ConstantDoubleInfo) return e.toString();
-        throw new ClassCastException("CP index " + (0xffff & index) + ": " + e);
     }
 
     /**

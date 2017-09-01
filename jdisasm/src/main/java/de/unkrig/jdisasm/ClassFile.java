@@ -35,6 +35,8 @@ import java.util.List;
 
 import de.unkrig.commons.nullanalysis.Nullable;
 import de.unkrig.jdisasm.ConstantPool.ConstantClassInfo;
+import de.unkrig.jdisasm.ConstantPool.ConstantDoubleOrFloatOrIntegerOrLongInfo;
+import de.unkrig.jdisasm.ConstantPool.ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantMethodHandleInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantNameAndTypeInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantPoolEntry;
@@ -1117,7 +1119,10 @@ class ClassFile {
     newElementValue(DataInputStream dis, ClassFile cf) throws IOException {
         final byte tag = dis.readByte();
         if ("BCDFIJSZ".indexOf(tag) != -1) {
-            final String s = cf.constantPool.getIntegerFloatLongDouble(dis.readShort());
+            final String s = cf.constantPool.get(
+                dis.readShort(),
+                ConstantDoubleOrFloatOrIntegerOrLongInfo.class
+            ).toString();
             return new ElementValue() { @Override public String toString() { return s; } };
         } else
         if (tag == 's') {
@@ -1648,7 +1653,12 @@ class ClassFile {
         public final String constantValue;
 
         ConstantValueAttribute(DataInputStream dis, ClassFile cf) throws IOException {
-            this.constantValue = cf.constantPool.getIntegerFloatLongDoubleString(dis.readShort());
+            this.constantValue = (
+                cf
+                .constantPool
+                .get(dis.readShort(), ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo.class)
+                .toString()
+            );
         }
 
         @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this); }

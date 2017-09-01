@@ -89,8 +89,11 @@ import de.unkrig.jdisasm.ClassFile.SourceFileAttribute;
 import de.unkrig.jdisasm.ClassFile.SyntheticAttribute;
 import de.unkrig.jdisasm.ClassFile.UnknownAttribute;
 import de.unkrig.jdisasm.ConstantPool.ConstantClassInfo;
+import de.unkrig.jdisasm.ConstantPool.ConstantClassOrFloatOrIntegerOrStringInfo;
+import de.unkrig.jdisasm.ConstantPool.ConstantDoubleOrLongOrStringInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantFieldrefInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantInterfaceMethodrefInfo;
+import de.unkrig.jdisasm.ConstantPool.ConstantInterfaceMethodrefOrMethodrefInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantInvokeDynamicInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantMethodrefInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantNameAndTypeInfo;
@@ -1560,8 +1563,8 @@ class Disassembler {
         + "193 instanceof      class2\n"
         + "186 invokedynamic   dynamiccallsite\n"
         + "185 invokeinterface interfacemethodref2\n"
-        + "183 invokespecial   methodref2\n"
-        + "184 invokestatic    methodref2\n"
+        + "183 invokespecial   methodreforinterfacemethodref2\n"
+        + "184 invokestatic    methodreforinterfacemethodref2\n"
         + "182 invokevirtual   methodref2\n"
         + "128 ior\n"
         + "112 irem\n"
@@ -1679,7 +1682,10 @@ class Disassembler {
                                 Disassembler    d
                             ) throws IOException {
                                 short  index = (short) (0xff & dis.readByte());
-                                String t     = cp.getIntegerFloatClassString(index);
+                                String t     = cp.get(
+                                    index,
+                                    ConstantClassOrFloatOrIntegerOrStringInfo.class
+                                ).toString();
                                 if (Character.isJavaIdentifierStart(t.charAt(0))) t = d.beautify(t);
                                 if (d.verbose) t += " (" + (0xffff & index) + ")";
                                 return ' ' + t;
@@ -1698,7 +1704,10 @@ class Disassembler {
                                 Disassembler    d
                             ) throws IOException {
                                 short  index = dis.readShort();
-                                String t     = cp.getIntegerFloatClassString(index);
+                                String t     = cp.get(
+                                    index,
+                                    ConstantClassOrFloatOrIntegerOrStringInfo.class
+                                ).toString();
                                 if (Character.isJavaIdentifierStart(t.charAt(0))) t = d.beautify(t);
                                 if (d.verbose) t += " (" + (0xffff & index) + ")";
                                 return ' ' + t;
@@ -1717,7 +1726,7 @@ class Disassembler {
                                 Disassembler    d
                             ) throws IOException {
                                 short  index = dis.readShort();
-                                String t     = cp.getLongDoubleString(index);
+                                String t     = cp.get(index, ConstantDoubleOrLongOrStringInfo.class).toString();
                                 if (d.verbose) t += " (" + (0xffff & index) + ")";
                                 return ' ' + t;
                             }
@@ -1790,6 +1799,35 @@ class Disassembler {
 
                                 ConstantInterfaceMethodrefInfo
                                 imr = cp.get(index, ConstantInterfaceMethodrefInfo.class);
+
+                                String t = d.beautify(
+                                    d
+                                    .decodeMethodDescriptor(imr.nameAndType.descriptor.bytes)
+                                    .toString(imr.clasS.name, imr.nameAndType.name.bytes)
+                                );
+                                if (d.verbose) t += " (" + (0xffff & index) + ")";
+                                return ' ' + t;
+                            }
+                        };
+                    } else
+                    if ("methodreforinterfacemethodref2".equals(s)) {
+                        operand = new Operand() {
+
+                            @Override public String
+                            disassemble(
+                                DataInputStream dis,
+                                int             instructionOffset,
+                                Method          method,
+                                ConstantPool    cp,
+                                Disassembler    d
+                            ) throws IOException {
+
+                                short index = dis.readShort(); // SUPPRESS CHECKSTYLE UsageDistance
+                                dis.readByte();
+                                dis.readByte();
+
+                                ConstantInterfaceMethodrefOrMethodrefInfo
+                                imr = cp.get(index, ConstantInterfaceMethodrefOrMethodrefInfo.class);
 
                                 String t = d.beautify(
                                     d
