@@ -305,7 +305,7 @@ class Disassembler {
      * default.
      */
     public void
-    setSourceDirectory(File sourceDirectory) { this.sourceDirectory = sourceDirectory; }
+    setSourceDirectory(@Nullable File sourceDirectory) { this.sourceDirectory = sourceDirectory; }
 
     /**
      * @param hideLines Whether source line numbers are suppressed in the disassembly (defaults to {@code false})
@@ -1563,8 +1563,8 @@ class Disassembler {
         + "193 instanceof      class2\n"
         + "186 invokedynamic   dynamiccallsite\n"
         + "185 invokeinterface interfacemethodref2\n"
-        + "183 invokespecial   methodreforinterfacemethodref2\n"
-        + "184 invokestatic    methodreforinterfacemethodref2\n"
+        + "183 invokespecial   interfacemethodreformethodref2\n"
+        + "184 invokestatic    interfacemethodreformethodref2\n"
         + "182 invokevirtual   methodref2\n"
         + "128 ior\n"
         + "112 irem\n"
@@ -1793,7 +1793,7 @@ class Disassembler {
                                 Disassembler    d
                             ) throws IOException {
 
-                                short index = dis.readShort(); // SUPPRESS CHECKSTYLE UsageDistance
+                                short index = dis.readShort();
                                 dis.readByte();
                                 dis.readByte();
 
@@ -1810,7 +1810,7 @@ class Disassembler {
                             }
                         };
                     } else
-                    if ("methodreforinterfacemethodref2".equals(s)) {
+                    if ("interfacemethodreformethodref2".equals(s)) {
                         operand = new Operand() {
 
                             @Override public String
@@ -1822,17 +1822,15 @@ class Disassembler {
                                 Disassembler    d
                             ) throws IOException {
 
-                                short index = dis.readShort(); // SUPPRESS CHECKSTYLE UsageDistance
-                                dis.readByte();
-                                dis.readByte();
+                                short index = dis.readShort();
 
                                 ConstantInterfaceMethodrefOrMethodrefInfo
-                                imr = cp.get(index, ConstantInterfaceMethodrefOrMethodrefInfo.class);
+                                imromr = cp.get(index, ConstantInterfaceMethodrefOrMethodrefInfo.class);
 
                                 String t = d.beautify(
                                     d
-                                    .decodeMethodDescriptor(imr.nameAndType.descriptor.bytes)
-                                    .toString(imr.clasS.name, imr.nameAndType.name.bytes)
+                                    .decodeMethodDescriptor(imromr.nameAndType.descriptor.bytes)
+                                    .toString(imromr.clasS.name, imromr.nameAndType.name.bytes)
                                 );
                                 if (d.verbose) t += " (" + (0xffff & index) + ")";
                                 return ' ' + t;
