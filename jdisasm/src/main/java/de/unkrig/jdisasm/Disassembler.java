@@ -26,6 +26,18 @@
 
 package de.unkrig.jdisasm;
 
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.ABSTRACT;
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.ANNOTATION;
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.BRIDGE;
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.ENUM;
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.FINAL;
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.INTERFACE;
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.PUBLIC;
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.STATIC;
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.SYNCHRONIZED;
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.SYNTHETIC;
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.VARARGS;
+
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.File;
@@ -61,6 +73,7 @@ import java.util.regex.Pattern;
 
 import de.unkrig.commons.nullanalysis.NotNullByDefault;
 import de.unkrig.commons.nullanalysis.Nullable;
+import de.unkrig.jdisasm.ClassFile.AccessFlags;
 import de.unkrig.jdisasm.ClassFile.Annotation;
 import de.unkrig.jdisasm.ClassFile.AnnotationDefaultAttribute;
 import de.unkrig.jdisasm.ClassFile.Attribute;
@@ -429,7 +442,7 @@ class Disassembler {
         this.println();
 
         // Print SYNTHETIC notice.
-        if ((cf.accessFlags & ClassFile.ACC_SYNTHETIC) != 0 || cf.syntheticAttribute != null) {
+        if (cf.accessFlags.is(ClassFile.AccessFlags.FlagType.SYNTHETIC) || cf.syntheticAttribute != null) {
             this.println("// This is a synthetic class.");
         }
 
@@ -450,24 +463,20 @@ class Disassembler {
             }
         }
 
-        // Print type access flags.
-        this.print(
-            Disassembler.decodeClassOrInterfaceAccess((short) (
-                cf.accessFlags
-
-                // Has no meaning but is always set for backwards compatibility
-                & ~ClassFile.ACC_SYNCHRONIZED
-
-                // SYNTHETIC has already been printed as a comment.
-                & ~ClassFile.ACC_SYNTHETIC
-
-                // Suppress redundant "abstract" modifier for interfaces.
-                & ((cf.accessFlags & ClassFile.ACC_INTERFACE) != 0 ? ~ClassFile.ACC_ABSTRACT : 0xffff)
-
-                // Suppress redundant "final" modifier for enums.
-                & ((cf.accessFlags & ClassFile.ACC_ENUM) != 0 ? ~ClassFile.ACC_FINAL : 0xffff)
-            ))
+        AccessFlags af = (
+            cf.accessFlags
+            .remove(SYNCHRONIZED) // Has no meaning but is always set for backwards compatibility
+            .remove(SYNTHETIC)    // SYNTHETIC has already been printed as a comment.
         );
+
+        // Suppress redundant "abstract" modifier for interfaces.
+        if (af.is(INTERFACE)) af = af.remove(ABSTRACT);
+
+        // Suppress redundant "final" modifier for enums.
+        if (af.is(ENUM)) af = af.remove(FINAL);
+
+        // Print type access flags.
+        this.print(Disassembler.typeAccessFlagsToString(af));
 
         // Print name.
         {
@@ -488,7 +497,7 @@ class Disassembler {
         // Print IMPLEMENTS clause.
         {
             List<String> ifs = cf.interfaceNames;
-            if ((cf.accessFlags & ClassFile.ACC_ANNOTATION) != 0) {
+            if (cf.accessFlags.is(ANNOTATION)) {
                 if (ifs.contains("java.lang.annotation.Annotation")) {
                     ifs = new ArrayList<String>(ifs);
                     ifs.remove("java.lang.annotation.Annotation");
@@ -601,12 +610,12 @@ class Disassembler {
             this.println();
 
             // Print SYNTHETIC notice.
-            if ((method.accessFlags & ClassFile.ACC_SYNTHETIC) != 0 || method.syntheticAttribute != null) {
+            if (method.accessFlags.is(SYNTHETIC) || method.syntheticAttribute != null) {
                 this.println("    // (Synthetic method)");
             }
 
             // Print BRIDGE notice.
-            if ((method.accessFlags & ClassFile.ACC_BRIDGE) != 0) this.println("    // (Bridge method)");
+            if (method.accessFlags.is(BRIDGE)) this.println("    // (Bridge method)");
 
             // Print DEPRECATED notice.
             if (method.deprecatedAttribute != null) this.println("    /** @deprecated */");
@@ -627,16 +636,21 @@ class Disassembler {
 
             // Print method access flags.
             {
-                int maf = (
+
+                // Remove "pseudo modifiers" - these are handled elsewhere.
+                AccessFlags maf = (
                     method.accessFlags
-                    & ~ClassFile.ACC_SYNTHETIC // Has already been reported above
-                    & ~ClassFile.ACC_BRIDGE    // Has already been reported above
-                    & ~ClassFile.ACC_VARARGS   // Is handled below
+                    .remove(SYNTHETIC) // <= Has already been reported above
+                    .remove(BRIDGE)    // <= Has already been reported above
+                    .remove(VARARGS)   // <= Is handled below
                 );
-                if ((method.getClassFile().accessFlags & ClassFile.ACC_INTERFACE) != 0) {
-                    maf &= ~ClassFile.ACC_PUBLIC & ~ClassFile.ACC_ABSTRACT;
+
+                // Remove redundant modifiers "public abstract" from interface mathods.
+                if (method.getClassFile().accessFlags.is(INTERFACE)) {
+                    maf = maf.remove(PUBLIC).remove(ABSTRACT);
                 }
-                Disassembler.this.print("    " + Disassembler.decodeAccess((short) maf));
+
+                Disassembler.this.print("    " + maf);
             }
 
             // Print formal type parameters.
@@ -665,7 +679,7 @@ class Disassembler {
             String functionName = method.name;
             if (
                 "<clinit>".equals(functionName)
-                && (method.accessFlags & ClassFile.ACC_STATIC) != 0
+                && method.accessFlags.is(STATIC)
                 && exceptionNames.isEmpty()
                 && mts.formalTypeParameters.isEmpty()
                 && mts.parameterTypes.isEmpty()
@@ -678,10 +692,7 @@ class Disassembler {
             } else
             if (
                 "<init>".equals(functionName)
-                && (
-                    method.accessFlags
-                    & (ClassFile.ACC_ABSTRACT | ClassFile.ACC_FINAL | ClassFile.ACC_INTERFACE | ClassFile.ACC_STATIC)
-                ) == 0
+                && !method.accessFlags.isAny(ABSTRACT, FINAL, INTERFACE, STATIC) // <= forbidden for construtors.
                 && mts.formalTypeParameters.isEmpty()
                 && mts.returnType == SignatureParser.VOID
             ) {
@@ -694,7 +705,7 @@ class Disassembler {
                     mts.parameterTypes,
                     method,
                     (short) 1,
-                    (method.accessFlags & ClassFile.ACC_VARARGS) != 0
+                    method.accessFlags.is(VARARGS)
                 );
             } else
             {
@@ -707,8 +718,8 @@ class Disassembler {
                     method.runtimeVisibleParameterAnnotationsAttribute,
                     mts.parameterTypes,
                     method,
-                    (method.accessFlags & ClassFile.ACC_STATIC) == 0 ? (short) 1 : (short) 0,
-                    (method.accessFlags & ClassFile.ACC_VARARGS) != 0
+                    method.accessFlags.is(STATIC) ? (short) 0 : (short) 1, // firstIndex
+                    method.accessFlags.is(VARARGS)                         // varargs
                 );
             }
 
@@ -790,7 +801,7 @@ class Disassembler {
             }
 
             // print SYNTHETIC notice.
-            if ((field.accessFlags & ClassFile.ACC_SYNTHETIC) != 0 || field.syntheticAttribute != null) {
+            if (field.accessFlags.is(SYNTHETIC) || field.syntheticAttribute != null) {
                 this.println("    // (Synthetic field)");
             }
 
@@ -809,7 +820,7 @@ class Disassembler {
                 );
 
                 String prefix = (
-                    Disassembler.decodeAccess((short) (field.accessFlags & ~ClassFile.ACC_SYNTHETIC))
+                    field.accessFlags.remove(SYNTHETIC)
                     + this.beautify(typeSignature.toString())
                 );
 
@@ -839,17 +850,17 @@ class Disassembler {
         ConstantClassInfo oci = c.outerClassInfo;
         ConstantClassInfo ici = c.innerClassInfo;
 
-        int icafs = c.innerClassAccessFlags;
+        AccessFlags icafs = c.innerClassAccessFlags;
 
         // Hide ABSTRACT and STATIC flags for interfaces.
-        if ((icafs & ClassFile.ACC_INTERFACE) != 0) {
-            icafs &= ~ClassFile.ACC_ABSTRACT & ~ClassFile.ACC_STATIC;
+        if (icafs.is(INTERFACE)) {
+            icafs = icafs.remove(ABSTRACT).remove(STATIC);
         }
 
         return (
             (oci == null ? "[local class]" : this.beautify(oci.name))
             + " { "
-            + Disassembler.decodeClassOrInterfaceAccess((short) icafs)
+            + Disassembler.typeAccessFlagsToString(icafs)
             + this.beautify(ici.name)
             + " }"
         );
@@ -2168,7 +2179,7 @@ class Disassembler {
     getLocalVariable(short localVariableIndex, int  instructionOffset, Method method) {
 
         // Calculate index of first parameter.
-        int firstParameter = (method.accessFlags & ClassFile.ACC_STATIC) == 0 ? 1 : 0;
+        int firstParameter = method.accessFlags.is(STATIC) ? 0 : 1;
         if (localVariableIndex < firstParameter) {
             return new LocalVariable(null, "this");
         }
@@ -2404,42 +2415,14 @@ class Disassembler {
         private long count;
     }
 
-    /**
-     * @eturn A series of words, in canonical order, separated with one space, and with one trailing space
-     */
     private static String
-    decodeAccess(short n) {
-        StringBuilder sb = new StringBuilder();
-        if ((n & ClassFile.ACC_PUBLIC)       != 0) { sb.append("public ");       n &= ~ClassFile.ACC_PUBLIC;       }
-        if ((n & ClassFile.ACC_PRIVATE)      != 0) { sb.append("private ");      n &= ~ClassFile.ACC_PRIVATE;      }
-        if ((n & ClassFile.ACC_PROTECTED)    != 0) { sb.append("protected ");    n &= ~ClassFile.ACC_PROTECTED;    }
+    typeAccessFlagsToString(AccessFlags af) {
 
-        if ((n & ClassFile.ACC_ABSTRACT)     != 0) { sb.append("abstract ");     n &= ~ClassFile.ACC_ABSTRACT;     }
-        if ((n & ClassFile.ACC_STATIC)       != 0) { sb.append("static ");       n &= ~ClassFile.ACC_STATIC;       }
-        if ((n & ClassFile.ACC_FINAL)        != 0) { sb.append("final ");        n &= ~ClassFile.ACC_FINAL;        }
-        if ((n & ClassFile.ACC_TRANSIENT)    != 0) { sb.append("transient ");    n &= ~ClassFile.ACC_TRANSIENT;    }
-        if ((n & ClassFile.ACC_VOLATILE)     != 0) { sb.append("volatile ");     n &= ~ClassFile.ACC_VOLATILE;     }
-        if ((n & ClassFile.ACC_SYNCHRONIZED) != 0) { sb.append("synchronized "); n &= ~ClassFile.ACC_SYNCHRONIZED; }
-        if ((n & ClassFile.ACC_NATIVE)       != 0) { sb.append("native ");       n &= ~ClassFile.ACC_NATIVE;       }
-        if ((n & ClassFile.ACC_STRICT)       != 0) { sb.append("strictfp ");     n &= ~ClassFile.ACC_STRICT;       }
-        if ((n & ClassFile.ACC_SYNTHETIC)    != 0) { sb.append("synthetic ");    n &= ~ClassFile.ACC_SYNTHETIC;    }
+        String result = af.toString();
 
-        if ((n & ClassFile.ACC_ANNOTATION)   != 0) { sb.append("@");             n &= ~ClassFile.ACC_ANNOTATION;   }
-        if ((n & ClassFile.ACC_INTERFACE)    != 0) { sb.append("interface ");    n &= ~ClassFile.ACC_INTERFACE;    }
-        if ((n & ClassFile.ACC_ENUM)         != 0) { sb.append("enum ");         n &= ~ClassFile.ACC_ENUM;         }
-
-        if (n != 0) sb.append("+ " + n + " ");
-
-        return sb.toString();
-    }
-
-    private static String
-    decodeClassOrInterfaceAccess(short n) {
-
-        String result = Disassembler.decodeAccess(n);
-
-        // For enums, annotations and interfaces, the keyword is already part of the result, but not for classes.
-        if ((n & (ClassFile.ACC_ENUM | ClassFile.ACC_ANNOTATION | ClassFile.ACC_INTERFACE)) == 0) {
+        // For enums, annotations and interfaces, the keyword ("enum", "@" and "interface") is already part of the
+        // result, but not for classes.
+        if (!af.is(ENUM) && !af.is(ANNOTATION) && !af.is(INTERFACE)) {
             result += "class ";
         }
 

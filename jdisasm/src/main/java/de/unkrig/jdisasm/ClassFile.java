@@ -26,6 +26,22 @@
 
 package de.unkrig.jdisasm;
 
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.ABSTRACT;
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.ANNOTATION;
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.ENUM;
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.FINAL;
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.INTERFACE;
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.NATIVE;
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.PRIVATE;
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.PROTECTED;
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.PUBLIC;
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.STATIC;
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.STRICT;
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.SYNCHRONIZED;
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.SYNTHETIC;
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.TRANSIENT;
+import static de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType.VOLATILE;
+
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -65,7 +81,7 @@ class ClassFile {
      * A <a href="http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.1-200-E">mask of flags used to
      * denote access permissions to and properties of this class or interface</a>.
      */
-    public short accessFlags;
+    public AccessFlags accessFlags;
 
     /**
      * The fully qualified (dot-separated) name of this type.
@@ -159,27 +175,90 @@ class ClassFile {
      */
     public final List<Attribute> attributes = new ArrayList<Attribute>();
 
-    // Class, nested class, field and method access and property flags.
+    /**
+     * Abstraction for a set of "access flags".
+     */
+    public static
+    class AccessFlags {
 
-    // CHECKSTYLE JavadocVariable:OFF
-    public static final short ACC_PUBLIC       = 0x00000001;
-    public static final short ACC_PRIVATE      = 0x00000002;
-    public static final short ACC_PROTECTED    = 0x00000004;
-    public static final short ACC_STATIC       = 0x00000008;
-    public static final short ACC_FINAL        = 0x00000010;
-    public static final short ACC_SYNCHRONIZED = 0x00000020;
-    public static final short ACC_VOLATILE     = 0x00000040;
-    public static final short ACC_BRIDGE       = 0x00000040;
-    public static final short ACC_TRANSIENT    = 0x00000080;
-    public static final short ACC_VARARGS      = 0x00000080;
-    public static final short ACC_NATIVE       = 0x00000100;
-    public static final short ACC_INTERFACE    = 0x00000200;
-    public static final short ACC_ABSTRACT     = 0x00000400;
-    public static final short ACC_STRICT       = 0x00000800;
-    public static final short ACC_SYNTHETIC    = 0x00001000;
-    public static final short ACC_ANNOTATION   = 0x00002000;
-    public static final short ACC_ENUM         = 0x00004000;
-    // CHECKSTYLE JavadocVariable:ON
+        enum FlagType { // SUPPRESS CHECKSTYLE Javadoc:16
+
+            PUBLIC      (0x00000001),
+            PRIVATE     (0x00000002),
+            PROTECTED   (0x00000004),
+            STATIC      (0x00000008),
+            FINAL       (0x00000010),
+            SYNCHRONIZED(0x00000020),
+            VOLATILE    (0x00000040), BRIDGE(0x00000040),  // <= Same values!
+            TRANSIENT   (0x00000080), VARARGS(0x00000080), // <= Same values!
+            NATIVE      (0x00000100),
+            INTERFACE   (0x00000200),
+            ABSTRACT    (0x00000400),
+            STRICT      (0x00000800),
+            SYNTHETIC   (0x00001000),
+            ANNOTATION  (0x00002000),
+            ENUM        (0x00004000),
+            ;
+
+            private final int value;
+
+            FlagType(int value) { this.value = value; }
+        }
+
+        private final int value;
+
+        public
+        AccessFlags(int value) { this.value = value; }
+
+        public boolean
+        is(FlagType ft) { return (this.value & ft.value) != 0; }
+
+        /**
+         * @return Whether one or more of the <var>flagTypes</var> is set
+         */
+        public boolean
+        isAny(FlagType... flagTypes) {
+            for (FlagType ft : flagTypes) {
+                if (this.is(ft)) return true;
+            }
+            return false;
+        }
+
+        public AccessFlags
+        add(FlagType ft) { return (this.value & ft.value) != 0 ? this : new AccessFlags(this.value | ft.value); }
+
+        public AccessFlags
+        remove(FlagType ft) { return (this.value & ft.value) == 0 ? this : new AccessFlags(this.value & ~ft.value); }
+
+        /**
+         * @eturn A series of words, in canonical order, separated with one space, and with one trailing space
+         */
+        @Override public String
+        toString() {
+
+            StringBuilder sb = new StringBuilder();
+
+            if (this.is(PUBLIC))       sb.append("public ");
+            if (this.is(PRIVATE))      sb.append("private ");
+            if (this.is(PROTECTED))    sb.append("protected ");
+
+            if (this.is(ABSTRACT))     sb.append("abstract ");
+            if (this.is(STATIC))       sb.append("static ");
+            if (this.is(FINAL))        sb.append("final ");
+            if (this.is(TRANSIENT))    sb.append("transient ");    // <= In favor of VARARGS
+            if (this.is(VOLATILE))     sb.append("volatile ");     // <= In favor of BRIDGE
+            if (this.is(SYNCHRONIZED)) sb.append("synchronized ");
+            if (this.is(NATIVE))       sb.append("native ");
+            if (this.is(STRICT))       sb.append("strictfp ");
+            if (this.is(SYNTHETIC))    sb.append("synthetic ");
+
+            if (this.is(ANNOTATION))   sb.append("@");
+            if (this.is(INTERFACE))    sb.append("interface ");
+            if (this.is(ENUM))         sb.append("enum ");
+
+            return sb.toString();
+        }
+    }
 
     public
     ClassFile(DataInputStream dis) throws IOException {
@@ -200,10 +279,10 @@ class ClassFile {
         this.constantPool = new ConstantPool(dis);
 
         // Access flags.
-        this.accessFlags = dis.readShort();
+        this.accessFlags = new AccessFlags(dis.readShort());
 
         // Class name.
-        this.thisClassName        = this.constantPool.get(dis.readShort(), ConstantClassInfo.class).name;
+        this.thisClassName              = this.constantPool.get(dis.readShort(), ConstantClassInfo.class).name;
         this.thisClassPackageNamePrefix = this.thisClassName.substring(0, this.thisClassName.lastIndexOf('.') + 1);
 
         // Superclass.
@@ -345,7 +424,7 @@ class ClassFile {
     class Field {
 
         // CHECKSTYLE VariableCheck:OFF
-        public short                                          accessFlags;
+        public AccessFlags                                    accessFlags;
         public String                                         name;
         public String                                         descriptor;
         @Nullable public ConstantValueAttribute               constantValueAttribute;
@@ -359,7 +438,7 @@ class ClassFile {
 
         public
         Field(DataInputStream dis) throws IOException {
-            this.accessFlags = dis.readShort();
+            this.accessFlags = new AccessFlags(dis.readShort());
             this.name        = ClassFile.this.constantPool.get(dis.readShort(), ConstantUtf8Info.class).bytes;
             this.descriptor  = ClassFile.this.constantPool.get(dis.readShort(), ConstantUtf8Info.class).bytes;
 
@@ -417,7 +496,7 @@ class ClassFile {
     class Method {
 
         // CHECKSTYLE VariableCheck:OFF
-        public short                                                   accessFlags;
+        public AccessFlags                                             accessFlags;
         public String                                                  name;
         public String                                                  descriptor;
         public final List<Attribute>                                   attributes = new ArrayList<Attribute>();
@@ -435,7 +514,7 @@ class ClassFile {
 
         public
         Method(DataInputStream dis) throws IOException {
-            this.accessFlags = dis.readShort();
+            this.accessFlags = new AccessFlags(dis.readShort());
             this.name        = ClassFile.this.constantPool.get(dis.readShort(), ConstantUtf8Info.class).bytes;
             this.descriptor  = ClassFile.this.constantPool.get(dis.readShort(), ConstantUtf8Info.class).bytes;
 
@@ -823,14 +902,14 @@ class ClassFile {
              * A mask of flags used to denote access permissions to and properties of the {@link #innerClassInfo inner
              * class}.
              */
-            public final short innerClassAccessFlags;
+            public final AccessFlags innerClassAccessFlags;
 
             public
             ClasS(DataInputStream dis, ClassFile cf) throws IOException {
                 this.innerClassInfo        = cf.constantPool.get(dis.readShort(), ConstantClassInfo.class);
                 this.outerClassInfo        = cf.constantPool.getOptional(dis.readShort(), ConstantClassInfo.class);
                 this.innerName             = cf.constantPool.getOptional(dis.readShort(), ConstantUtf8Info.class);
-                this.innerClassAccessFlags = dis.readShort();
+                this.innerClassAccessFlags = new AccessFlags(dis.readShort());
             }
         }
 
