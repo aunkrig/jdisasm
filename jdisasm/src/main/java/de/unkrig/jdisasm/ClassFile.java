@@ -183,21 +183,21 @@ class ClassFile {
 
         enum FlagType { // SUPPRESS CHECKSTYLE Javadoc:16
 
-            PUBLIC      (0x00000001),
-            PRIVATE     (0x00000002),
-            PROTECTED   (0x00000004),
-            STATIC      (0x00000008),
-            FINAL       (0x00000010),
-            SYNCHRONIZED(0x00000020),
-            VOLATILE    (0x00000040), BRIDGE(0x00000040),  // <= Same values!
-            TRANSIENT   (0x00000080), VARARGS(0x00000080), // <= Same values!
-            NATIVE      (0x00000100),
-            INTERFACE   (0x00000200),
-            ABSTRACT    (0x00000400),
-            STRICT      (0x00000800),
-            SYNTHETIC   (0x00001000),
-            ANNOTATION  (0x00002000),
-            ENUM        (0x00004000),
+            PUBLIC      (0x0001),
+            PRIVATE     (0x0002),
+            PROTECTED   (0x0004),
+            STATIC      (0x0008),
+            FINAL       (0x0010),
+            SYNCHRONIZED(0x0020),
+            VOLATILE    (0x0040), BRIDGE(0x0040),  // <= Same values!
+            TRANSIENT   (0x0080), VARARGS(0x0080), // <= Same values!
+            NATIVE      (0x0100),
+            INTERFACE   (0x0200),
+            ABSTRACT    (0x0400),
+            STRICT      (0x0800),
+            SYNTHETIC   (0x1000),
+            ANNOTATION  (0x2000),
+            ENUM        (0x4000),
             ;
 
             private final int value;
