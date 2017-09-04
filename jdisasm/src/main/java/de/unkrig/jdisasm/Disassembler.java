@@ -46,6 +46,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Formatter;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -146,9 +147,10 @@ class Disassembler {
      * {@code null} means "do not attempt to find the source file".
      */
     @Nullable private File sourceDirectory;
-    private boolean        hideLines;
-    private boolean        hideVars;
-    private boolean        symbolicLabels;
+
+    private boolean hideLines;
+    private boolean hideVars;
+    private boolean symbolicLabels;
 
     /**
      * "" for the default package; with a trailing period otherwise.
@@ -1252,13 +1254,7 @@ class Disassembler {
                         try {
                             lines.put(
                                 instructionOffset,
-                                instruction.getMnemonic() + this.disassembleOperands(
-                                    instruction.getOperands(),
-                                    dis,
-                                    instructionOffset,
-                                    method,
-                                    cp
-                                )
+                                this.disassembleInstruction(instruction, dis, instructionOffset, method, cp)
                             );
                         } catch (RuntimeException rte) {
                             for (Iterator<Entry<Integer, String>> it = lines.entrySet().iterator(); it.hasNext();) {
@@ -1384,7 +1380,33 @@ class Disassembler {
         }
     }
 
-    @Nullable private String
+    /**
+     * Converts one instruction into a string, e.g. {@code "invokespecial   java.io.IOException(String)"}.
+     */
+    private String
+    disassembleInstruction(
+        Instruction     instruction,
+        DataInputStream dis,
+        int             instructionOffset,
+        Method          method,
+        ConstantPool    cp
+    ) throws IOException {
+
+        Operand[] operands = instruction.getOperands();
+
+        if (operands.length == 0) return instruction.getMnemonic();
+
+        Formatter f = new Formatter();
+        f.format("%-15s", instruction.getMnemonic());
+
+        for (int i = 0; i < operands.length; ++i) {
+            f.format(" %s", operands[i].disassemble(dis, instructionOffset, method, cp, this));
+        }
+
+        return f.toString();
+    }
+
+    private String
     branchTarget(int offset) {
         Map<Integer, String> bts = this.branchTargets;
         assert bts != null;
@@ -1407,32 +1429,10 @@ class Disassembler {
         return -1;
     }
 
-    /**
-     * @return The <var>operands</var> converted into one line of text, prefixed and separated by one space
-     */
-    String
-    disassembleOperands(
-        Operand[]       operands,
-        DataInputStream dis,
-        int             instructionOffset,
-        Method          method,
-        ConstantPool    cp
-    ) throws IOException {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < operands.length; ++i) {
-            sb.append(operands[i].disassemble(
-                dis,
-                instructionOffset,
-                method,
-                cp,
-                this
-            ));
-        }
-        return sb.toString();
-    }
-
-    private static final Instruction[] OPCODE_TO_INSTRUCTION = Disassembler.compileInstructions(
-        "50  aaload\n"
+    private static final Instruction[]
+    OPCODE_TO_INSTRUCTION = Disassembler.compileInstructions(
+        ""
+        + "50  aaload\n"
         + "83  aastore\n"
         + "1   aconst_null\n"
         + "25  aload           localvariableindex1\n"
@@ -1636,8 +1636,10 @@ class Disassembler {
         + "196 wide            wide\n"
     );
 
-    private static final Instruction[] OPCODE_TO_WIDE_INSTRUCTION = Disassembler.compileInstructions(
-        "21  iload           localvariableindex2\n"
+    private static final Instruction[]
+    OPCODE_TO_WIDE_INSTRUCTION = Disassembler.compileInstructions(
+        ""
+        + "21  iload           localvariableindex2\n"
         + "23  fload           localvariableindex2\n"
         + "25  aload           localvariableindex2\n"
         + "22  lload           localvariableindex2\n"
@@ -1657,7 +1659,7 @@ class Disassembler {
 
         for (StringTokenizer st1 = new StringTokenizer(instructions, "\n"); st1.hasMoreTokens();) {
 
-            StringTokenizer st2      = new StringTokenizer(st1.nextToken());
+            StringTokenizer st2 = new StringTokenizer(st1.nextToken());
 
             final int opcode   = Integer.parseInt(st2.nextToken());
             String    mnemonic = st2.nextToken();
@@ -1688,7 +1690,7 @@ class Disassembler {
                                 ).toString();
                                 if (Character.isJavaIdentifierStart(t.charAt(0))) t = d.beautify(t);
                                 if (d.verbose) t += " (" + (0xffff & index) + ")";
-                                return ' ' + t;
+                                return t;
                             }
                         };
                     } else
@@ -1710,7 +1712,7 @@ class Disassembler {
                                 ).toString();
                                 if (Character.isJavaIdentifierStart(t.charAt(0))) t = d.beautify(t);
                                 if (d.verbose) t += " (" + (0xffff & index) + ")";
-                                return ' ' + t;
+                                return t;
                             }
                         };
                     } else
@@ -1728,7 +1730,7 @@ class Disassembler {
                                 short  index = dis.readShort();
                                 String t     = cp.get(index, ConstantDoubleOrLongOrStringInfo.class).toString();
                                 if (d.verbose) t += " (" + (0xffff & index) + ")";
-                                return ' ' + t;
+                                return t;
                             }
                         };
                     } else
@@ -1753,7 +1755,7 @@ class Disassembler {
                                     + fr.nameAndType.name.bytes
                                 );
                                 if (d.verbose) t += " (" + (0xffff & index) + ")";
-                                return ' ' + t;
+                                return t;
                             }
                         };
                     } else
@@ -1777,7 +1779,7 @@ class Disassembler {
                                     )
                                 );
                                 if (d.verbose) t += " (" + (0xffff & index) + ")";
-                                return ' ' + t;
+                                return t;
                             }
                         };
                     } else
@@ -1806,7 +1808,7 @@ class Disassembler {
                                     .toString(imr.clasS.name, imr.nameAndType.name.bytes)
                                 );
                                 if (d.verbose) t += " (" + (0xffff & index) + ")";
-                                return ' ' + t;
+                                return t;
                             }
                         };
                     } else
@@ -1833,7 +1835,7 @@ class Disassembler {
                                     .toString(imromr.clasS.name, imromr.nameAndType.name.bytes)
                                 );
                                 if (d.verbose) t += " (" + (0xffff & index) + ")";
-                                return ' ' + t;
+                                return t;
                             }
                         };
                     } else
@@ -1858,7 +1860,7 @@ class Disassembler {
                                     : name.replace('/', '.')
                                 );
                                 if (d.verbose) t += " (" + (0xffff & index) + ")";
-                                return ' ' + t;
+                                return t;
                             }
                         };
                     } else
@@ -1940,7 +1942,7 @@ class Disassembler {
                                 Method          method,
                                 ConstantPool    cp,
                                 Disassembler    d
-                            ) throws IOException { return " " + d.branchTarget(instructionOffset + dis.readShort()); }
+                            ) throws IOException { return d.branchTarget(instructionOffset + dis.readShort()); }
                         };
                     } else
                     if ("branchoffset4".equals(s)) {
@@ -1953,7 +1955,7 @@ class Disassembler {
                                 Method          method,
                                 ConstantPool    cp,
                                 Disassembler    d
-                            ) throws IOException { return " " + d.branchTarget(instructionOffset + dis.readInt()); }
+                            ) throws IOException { return d.branchTarget(instructionOffset + dis.readInt()); }
                         };
                     } else
                     if ("signedbyte".equals(s)) {
@@ -1966,7 +1968,7 @@ class Disassembler {
                                 Method          method,
                                 ConstantPool    cp,
                                 Disassembler    d
-                            ) throws IOException { return " " + dis.readByte(); }
+                            ) throws IOException { return Integer.toString(dis.readByte()); }
                         };
                     } else
                     if ("unsignedbyte".equals(s)) {
@@ -1979,7 +1981,7 @@ class Disassembler {
                                 Method          method,
                                 ConstantPool    cp,
                                 Disassembler    d
-                            ) throws IOException { return " " + (0xff & dis.readByte()); }
+                            ) throws IOException { return Integer.toString(0xff & dis.readByte()); }
                         };
                     } else
                     if ("atype".equals(s)) {
@@ -1995,15 +1997,15 @@ class Disassembler {
                             ) throws IOException {
                                 byte b = dis.readByte();
                                 return (
-                                    b ==  4 ? " BOOLEAN"
-                                    : b ==  5 ? " CHAR"
-                                    : b ==  6 ? " FLOAT"
-                                    : b ==  7 ? " DOUBLE"
-                                    : b ==  8 ? " BYTE"
-                                    : b ==  9 ? " SHORT"
-                                    : b == 10 ? " INT"
-                                    : b == 11 ? " LONG"
-                                    : " " + (0xff & b)
+                                    b ==  4 ? "BOOLEAN" :
+                                    b ==  5 ? "CHAR"    :
+                                    b ==  6 ? "FLOAT"   :
+                                    b ==  7 ? "DOUBLE"  :
+                                    b ==  8 ? "BYTE"    :
+                                    b ==  9 ? "SHORT"   :
+                                    b == 10 ? "INT"     :
+                                    b == 11 ? "LONG"    :
+                                    Integer.toString(0xff & b)
                                 );
                             }
                         };
@@ -2018,7 +2020,7 @@ class Disassembler {
                                 Method          method,
                                 ConstantPool    cp,
                                 Disassembler    d
-                            ) throws IOException { return " " + dis.readShort(); }
+                            ) throws IOException { return Integer.toString(dis.readShort()); }
                         };
                     } else
                     if ("tableswitch".equals(s)) {
@@ -2045,7 +2047,7 @@ class Disassembler {
                                     }
                                 }
 
-                                StringBuilder sb = new StringBuilder(" default => ");
+                                StringBuilder sb = new StringBuilder("default => ");
                                 sb.append(d.branchTarget(instructionOffset + dis.readInt()));
 
                                 int low  = dis.readInt();
@@ -2082,7 +2084,7 @@ class Disassembler {
                                     }
                                 }
 
-                                StringBuilder sb = new StringBuilder(" default => ");
+                                StringBuilder sb = new StringBuilder("default => ");
                                 sb.append(d.branchTarget(instructionOffset + dis.readInt()));
 
                                 int npairs = dis.readInt();
@@ -2115,7 +2117,7 @@ class Disassembler {
                                     cp.get(index, ConstantInvokeDynamicInfo.class).bootstrapMethodAttrIndex
                                 );
 
-                                return " " + bm + "." + cp.get(index, ConstantInvokeDynamicInfo.class).nameAndType;
+                                return bm + "." + cp.get(index, ConstantInvokeDynamicInfo.class).nameAndType;
                             }
                         };
                     } else
@@ -2135,13 +2137,7 @@ class Disassembler {
                                 if (wideInstruction == null) {
                                     return "Invalid opcode " + subopcode + " after opcode WIDE";
                                 }
-                                return wideInstruction.getMnemonic() + d.disassembleOperands(
-                                    wideInstruction.getOperands(),
-                                    dis,
-                                    instructionOffset,
-                                    method,
-                                    cp
-                                );
+                                return d.disassembleInstruction(wideInstruction, dis, instructionOffset, method, cp);
                             }
                         };
                     } else
@@ -2152,9 +2148,6 @@ class Disassembler {
                 }
                 operands = l.toArray(new Operand[l.size()]);
             }
-
-            // Pad the mnemonic to 15 characters so the first operands are vertically aligned.
-            mnemonic += "               ".substring(mnemonic.length());
 
             result[opcode] = new Instruction(mnemonic, operands);
         }
@@ -2322,7 +2315,7 @@ class Disassembler {
         @Override public String
         toString() {
             TypeSignature ts = this.typeSignature;
-            return ts == null ? " [" + this.name + ']' : " [" + ts.toString() + ' ' + this.name + ']';
+            return ts == null ? '[' + this.name + ']' : '[' + ts.toString() + ' ' + this.name + ']';
         }
     }
 
@@ -2337,7 +2330,11 @@ class Disassembler {
     private static
     class Instruction {
 
+        private final String    mnemonic;
+        private final Operand[] operands;
+
         /**
+         * @param mnemonic E.g. {@code "invokevirtual"}
          * @param operands {@code null} is equivalent to "zero operands"
          */
         Instruction(String mnemonic, Operand[] operands) {
@@ -2348,11 +2345,7 @@ class Disassembler {
         public Operand[] getOperands() { return this.operands; }
 
         @Override public String
-        toString() {
-            return this.mnemonic;
-        }
-        private final String    mnemonic;
-        private final Operand[] operands;
+        toString() { return this.mnemonic; }
     }
 
     /**
@@ -2362,7 +2355,7 @@ class Disassembler {
     interface Operand {
 
         /**
-         * @return One space and this operand disassembled
+         * @return This operand disassembled
          */
         String
         disassemble(
