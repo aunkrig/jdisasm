@@ -171,7 +171,7 @@ class ClassFile {
     @Nullable public SyntheticAttribute syntheticAttribute;
 
     /**
-     * The other attributes of this class or interface.
+     * All attributes of this class.
      */
     public final List<Attribute> attributes = new ArrayList<Attribute>();
 
@@ -423,18 +423,19 @@ class ClassFile {
     public
     class Field {
 
-        // CHECKSTYLE VariableCheck:OFF
-        public AccessFlags                                    accessFlags;
-        public String                                         name;
-        public String                                         descriptor;
+        // SUPPRESS CHECKSTYLE JavadocVariable:3
+        public AccessFlags accessFlags;
+        public String      name;
+        public String      descriptor;
+
+        // SUPPRESS CHECKSTYLE JavadocVariable:7
+        public final List<Attribute>                          attributes = new ArrayList<Attribute>();
         @Nullable public ConstantValueAttribute               constantValueAttribute;
         @Nullable public DeprecatedAttribute                  deprecatedAttribute;
         @Nullable public RuntimeInvisibleAnnotationsAttribute runtimeInvisibleAnnotationsAttribute;
         @Nullable public RuntimeVisibleAnnotationsAttribute   runtimeVisibleAnnotationsAttribute;
         @Nullable public SignatureAttribute                   signatureAttribute;
         @Nullable public SyntheticAttribute                   syntheticAttribute;
-        public final List<Attribute>                          attributes = new ArrayList<Attribute>();
-        // CHECKSTYLE VariableCheck:ON
 
         public
         Field(DataInputStream dis) throws IOException {
@@ -495,10 +496,12 @@ class ClassFile {
     public
     class Method {
 
-        // CHECKSTYLE VariableCheck:OFF
-        public AccessFlags                                             accessFlags;
-        public String                                                  name;
-        public String                                                  descriptor;
+        // SUPPRESS CHECKSTYLE JavadocVariableCheck:3
+        public AccessFlags accessFlags;
+        public String      name;
+        public String      descriptor;
+
+        // SUPPRESS CHECKSTYLE JavadocVariableCheck:11
         public final List<Attribute>                                   attributes = new ArrayList<Attribute>();
         @Nullable public AnnotationDefaultAttribute                    annotationDefaultAttribute;
         @Nullable public CodeAttribute                                 codeAttribute;
@@ -510,7 +513,6 @@ class ClassFile {
         @Nullable public RuntimeVisibleParameterAnnotationsAttribute   runtimeVisibleParameterAnnotationsAttribute;
         @Nullable public SignatureAttribute                            signatureAttribute;
         @Nullable public SyntheticAttribute                            syntheticAttribute;
-        // CHECKSTYLE VariableCheck:ON
 
         public
         Method(DataInputStream dis) throws IOException {
@@ -1395,7 +1397,7 @@ class ClassFile {
         @Nullable public LineNumberTableAttribute lineNumberTableAttribute;
 
         /**
-         * The attributes of the {@code Code} attribute.
+         * All attributes of this {@link CodeAttribute}.
          */
         public final List<Attribute> attributes = new ArrayList<Attribute>();
 
