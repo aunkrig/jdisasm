@@ -73,6 +73,11 @@ class ClassFile {
     public String thisClassName;
 
     /**
+     * The fully qualified name of the package that declares this type, including a trailing ".".
+     */
+    public String thisClassPackageNamePrefix;
+
+    /**
      * The fully qualified (dot-separated) name of the superclass of this type; "java.lang.Object" iff this type is an
      * interface; {@code null} iff this type is {@link Object}.
      */
@@ -198,7 +203,8 @@ class ClassFile {
         this.accessFlags = dis.readShort();
 
         // Class name.
-        this.thisClassName = this.constantPool.get(dis.readShort(), ConstantClassInfo.class).name;
+        this.thisClassName        = this.constantPool.get(dis.readShort(), ConstantClassInfo.class).name;
+        this.thisClassPackageNamePrefix = this.thisClassName.substring(0, this.thisClassName.lastIndexOf('.') + 1);
 
         // Superclass.
         {
@@ -516,6 +522,9 @@ class ClassFile {
                 );
             }
         }
+
+        public ClassFile
+        getClassFile() { return ClassFile.this; }
 
         /**
          * @return The {@code BootstrapMethods} attribute of the class file
@@ -1671,4 +1680,17 @@ class ClassFile {
         dis.readFully(res);
         return res;
     }
+
+//    public String
+//    beautifyTypeName(String typeName) {
+//
+//        // Strip redundant prefixes from the type name.
+//        for (String packageNamePrefix : new String[] { "java.lang.", this.thisClassPackageNamePrefix }) {
+//            if (typeName.startsWith(packageNamePrefix)) {
+//                return typeName.substring(packageNamePrefix.length());
+//            }
+//        }
+//
+//        return typeName;
+//    }
 }

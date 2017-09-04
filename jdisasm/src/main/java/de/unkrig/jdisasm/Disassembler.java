@@ -440,19 +440,19 @@ class Disassembler {
         {
             RuntimeInvisibleAnnotationsAttribute riaa = cf.runtimeInvisibleAnnotationsAttribute;
             if (riaa != null) {
-                for (Annotation a : riaa.annotations) this.println(a.toString());
+                for (Annotation a : riaa.annotations) this.println(this.beautify(a.toString()));
             }
         }
         {
             RuntimeVisibleAnnotationsAttribute rvaa = cf.runtimeVisibleAnnotationsAttribute;
             if (rvaa != null) {
-                for (Annotation a : rvaa.annotations) this.println(a.toString());
+                for (Annotation a : rvaa.annotations) this.println(this.beautify(a.toString()));
             }
         }
 
         // Print type access flags.
         this.print(
-            Disassembler.decodeAccess((short) (
+            Disassembler.decodeClassOrInterfaceAccess((short) (
                 cf.accessFlags
 
                 // Has no meaning but is always set for backwards compatibility
@@ -467,43 +467,42 @@ class Disassembler {
                 // Suppress redundant "final" modifier for enums.
                 & ((cf.accessFlags & ClassFile.ACC_ENUM) != 0 ? ~ClassFile.ACC_FINAL : 0xffff)
             ))
-            + (
-                (cf.accessFlags & (ClassFile.ACC_ENUM | ClassFile.ACC_ANNOTATION | ClassFile.ACC_INTERFACE)) == 0
-                ? "class "
-                : ""
-            )
         );
 
-        // Print name, EXTENDS and IMPLEMENTS clauses.
+        // Print name.
         {
             SignatureAttribute sa = cf.signatureAttribute;
             if (sa != null) {
                 this.print(this.beautify(this.decodeClassSignature(sa.signature).toString(cf.thisClassName)));
             } else {
                 this.print(this.beautify(cf.thisClassName));
-                {
-                    String scn = cf.superClassName;
-                    if (scn != null && !"java.lang.Object".equals(scn)) this.print(" extends " + this.beautify(scn));
+            }
+        }
+
+        // Print EXTENDS clause.
+        {
+            String scn = cf.superClassName;
+            if (scn != null && !"java.lang.Object".equals(scn)) this.print(" extends " + this.beautify(scn));
+        }
+
+        // Print IMPLEMENTS clause.
+        {
+            List<String> ifs = cf.interfaceNames;
+            if ((cf.accessFlags & ClassFile.ACC_ANNOTATION) != 0) {
+                if (ifs.contains("java.lang.annotation.Annotation")) {
+                    ifs = new ArrayList<String>(ifs);
+                    ifs.remove("java.lang.annotation.Annotation");
+                } else {
+                    this.print(
+                        " /* WARNING: "
+                        + "This annotation type does not implement \"java.lang.annotation.Annotation\"! */"
+                    );
                 }
-                List<String> ifs = cf.interfaceNames;
-                if ((cf.accessFlags & ClassFile.ACC_ANNOTATION) != 0) {
-                    if (ifs.contains("java.lang.annotation.Annotation")) {
-                        ifs = new ArrayList<String>(ifs);
-                        ifs.remove("java.lang.annotation.Annotation");
-                    } else {
-                        this.print(
-                            " /* WARNING: "
-                            + "This annotation type does not implement \"java.lang.annotation.Annotation\"! */"
-                        );
-                    }
-                }
-                if (!ifs.isEmpty()) {
-                    Iterator<String> it = ifs.iterator();
-                    this.print(" implements " + this.beautify(it.next()));
-                    while (it.hasNext()) {
-                        this.print(", " + this.beautify(it.next()));
-                    }
-                }
+            }
+            if (!ifs.isEmpty()) {
+                Iterator<String> it = ifs.iterator();
+                this.print(" implements " + this.beautify(it.next()));
+                while (it.hasNext()) this.print(", " + this.beautify(it.next()));
             }
         }
 
@@ -573,7 +572,7 @@ class Disassembler {
 
         // Methods.
         for (Method m : cf.methods) {
-            this.disassembleMethod(m, cf, sourceLines);
+            this.disassembleMethod(m, sourceLines);
         }
 
         this.println("}");
@@ -595,7 +594,7 @@ class Disassembler {
      * Disassembles one method.
      */
     private void
-    disassembleMethod(Method method, ClassFile cf, Map<Integer, String> sourceLines) {
+    disassembleMethod(Method method, Map<Integer, String> sourceLines) {
         try {
 
             // One blank line before each method declaration.
@@ -616,31 +615,29 @@ class Disassembler {
             {
                 RuntimeInvisibleAnnotationsAttribute riaa = method.runtimeInvisibleAnnotationsAttribute;
                 if (riaa != null) {
-                    for (Annotation a : riaa.annotations) this.println("    " + a.toString());
+                    for (Annotation a : riaa.annotations) this.println("    " + this.beautify(a.toString()));
                 }
             }
             {
                 RuntimeVisibleAnnotationsAttribute rvaa = method.runtimeVisibleAnnotationsAttribute;
                 if (rvaa != null) {
-                    for (Annotation a : rvaa.annotations) this.println("    " + a.toString());
+                    for (Annotation a : rvaa.annotations) this.println("    " + this.beautify(a.toString()));
                 }
             }
 
             // Print method access flags.
-            Disassembler.this.print(
-                "    "
-                + Disassembler.decodeAccess((short) (
+            {
+                int maf = (
                     method.accessFlags
-                    & ~ClassFile.ACC_SYNTHETIC
-                    & ~ClassFile.ACC_BRIDGE
-                    & ~ClassFile.ACC_VARARGS
-                    & (
-                        (cf.accessFlags & ClassFile.ACC_INTERFACE) != 0
-                        ? ~(ClassFile.ACC_PUBLIC | ClassFile.ACC_ABSTRACT)
-                        : 0xffff
-                    )
-                ))
-            );
+                    & ~ClassFile.ACC_SYNTHETIC // Has already been reported above
+                    & ~ClassFile.ACC_BRIDGE    // Has already been reported above
+                    & ~ClassFile.ACC_VARARGS   // Is handled below
+                );
+                if ((method.getClassFile().accessFlags & ClassFile.ACC_INTERFACE) != 0) {
+                    maf &= ~ClassFile.ACC_PUBLIC & ~ClassFile.ACC_ABSTRACT;
+                }
+                Disassembler.this.print("    " + Disassembler.decodeAccess((short) maf));
+            }
 
             // Print formal type parameters.
             MethodTypeSignature mts;
@@ -659,7 +656,6 @@ class Disassembler {
                 }
             }
 
-            // Print method name.
             List<ConstantClassInfo> exceptionNames;
             {
                 ExceptionsAttribute ea = method.exceptionsAttribute;
@@ -676,6 +672,8 @@ class Disassembler {
                 && mts.returnType == SignatureParser.VOID
                 && mts.thrownTypes.isEmpty()
             ) {
+
+                // Need to do NOTHING here because "static" has already been printed, and "{" will be printed later.
                 ;
             } else
             if (
@@ -687,7 +685,9 @@ class Disassembler {
                 && mts.formalTypeParameters.isEmpty()
                 && mts.returnType == SignatureParser.VOID
             ) {
-                this.print(this.beautify(cf.thisClassName));
+
+                // Print constructor name and parameters.
+                this.print(this.beautify(method.getClassFile().thisClassName));
                 this.printParameters(
                     method.runtimeInvisibleParameterAnnotationsAttribute,
                     method.runtimeVisibleParameterAnnotationsAttribute,
@@ -698,6 +698,8 @@ class Disassembler {
                 );
             } else
             {
+
+                // Print method return type, name and parameters.
                 this.print(this.beautify(mts.returnType.toString()) + ' ');
                 this.print(functionName);
                 this.printParameters(
@@ -710,7 +712,7 @@ class Disassembler {
                 );
             }
 
-            // Thrown types.
+            // Print thrown types.
             if (!mts.thrownTypes.isEmpty()) {
                 Iterator<ThrowsSignature> it = mts.thrownTypes.iterator();
                 this.print(" throws " + this.beautify(it.next().toString()));
@@ -741,7 +743,6 @@ class Disassembler {
                             ca.exceptionTable,
                             ca.lineNumberTableAttribute,
                             sourceLines,
-                            cf.constantPool,
                             method
                         );
                     } catch (IOException ignored) {
@@ -778,13 +779,13 @@ class Disassembler {
             {
                 RuntimeInvisibleAnnotationsAttribute riaa = field.runtimeInvisibleAnnotationsAttribute;
                 if (riaa != null) {
-                    for (Annotation a : riaa.annotations) this.println("    " + a.toString());
+                    for (Annotation a : riaa.annotations) this.println("    " + this.beautify(a.toString()));
                 }
             }
             {
                 RuntimeVisibleAnnotationsAttribute rvaa = field.runtimeVisibleAnnotationsAttribute;
                 if (rvaa != null) {
-                    for (Annotation a : rvaa.annotations) this.println("    " + a.toString());
+                    for (Annotation a : rvaa.annotations) this.println("    " + this.beautify(a.toString()));
                 }
             }
 
@@ -796,30 +797,27 @@ class Disassembler {
             // Print DEPRECATED notice.
             if (field.deprecatedAttribute != null) this.println("    /** @deprecated */");
 
-            // Print field access flags and field type.
-            String parametrizedType;
+
+            // Print field access flags, type, name and initializer.
             {
                 SignatureAttribute sa = field.signatureAttribute;
-                parametrizedType = this.beautify(
-                    sa == null
-                    ? this.decodeFieldDescriptor(field.descriptor).toString()
-                    : this.decodeFieldTypeSignature(sa.signature).toString()
-                );
-            }
 
-            // Print field name and initializer.
-            {
-                String prefix = (
-                    "    "
-                    + Disassembler.decodeAccess((short) (field.accessFlags & ~ClassFile.ACC_SYNTHETIC))
-                    + parametrizedType
-                    + " "
+                TypeSignature typeSignature = (
+                    sa != null
+                    ? this.decodeFieldTypeSignature(sa.signature)
+                    : this.decodeFieldDescriptor(field.descriptor)
                 );
+
+                String prefix = (
+                    Disassembler.decodeAccess((short) (field.accessFlags & ~ClassFile.ACC_SYNTHETIC))
+                    + this.beautify(typeSignature.toString())
+                );
+
                 ConstantValueAttribute cva = field.constantValueAttribute;
                 if (cva == null) {
-                    this.printf("%-40s %s;%n", prefix, field.name);
+                    this.printf("    %-40s %s;%n", prefix, field.name);
                 } else {
-                    this.printf("%-40s %-15s = %s;%n", prefix, field.name, cva.constantValue);
+                    this.printf("    %-40s %-15s = %s;%n", prefix, field.name, cva.constantValue);
                 }
             }
 
@@ -837,21 +835,23 @@ class Disassembler {
 
     private String
     toString(InnerClassesAttribute.ClasS c) {
+
         ConstantClassInfo oci = c.outerClassInfo;
         ConstantClassInfo ici = c.innerClassInfo;
+
+        int icafs = c.innerClassAccessFlags;
+
+        // Hide ABSTRACT and STATIC flags for interfaces.
+        if ((icafs & ClassFile.ACC_INTERFACE) != 0) {
+            icafs &= ~ClassFile.ACC_ABSTRACT & ~ClassFile.ACC_STATIC;
+        }
+
         return (
             (oci == null ? "[local class]" : this.beautify(oci.name))
             + " { "
-            + Disassembler.decodeAccess((short) (c.innerClassAccessFlags & ( // Hide ABSTRACT and STATIC for interfaces
-                (c.innerClassAccessFlags & ClassFile.ACC_INTERFACE) != 0
-                ? (~ClassFile.ACC_ABSTRACT & ~ClassFile.ACC_STATIC)
-                : 0xffff
-            )))
-            + ((
-                c.innerClassAccessFlags
-                & (ClassFile.ACC_ENUM | ClassFile.ACC_ANNOTATION | ClassFile.ACC_INTERFACE)
-            ) == 0 ? "class " : "")
-            + this.beautify(ici.name) + " }"
+            + Disassembler.decodeClassOrInterfaceAccess((short) icafs)
+            + this.beautify(ici.name)
+            + " }"
         );
     }
 
@@ -1050,7 +1050,7 @@ class Disassembler {
         visit(RuntimeInvisibleAnnotationsAttribute riaa) {
             Disassembler.this.println(this.prefix + "RuntimeInvisibleAnnotations:");
             for (Annotation a : riaa.annotations) {
-                Disassembler.this.println(this.prefix + "  " + a.toString());
+                Disassembler.this.println(this.prefix + "  " + Disassembler.this.beautify(a.toString()));
             }
         }
 
@@ -1058,7 +1058,7 @@ class Disassembler {
         visit(RuntimeVisibleAnnotationsAttribute rvaa) {
             Disassembler.this.println(this.prefix + "RuntimeVisibleAnnotations:");
             for (Annotation a : rvaa.annotations) {
-                Disassembler.this.println(this.prefix + "  " + a.toString());
+                Disassembler.this.println(this.prefix + "  " + Disassembler.this.beautify(a.toString()));
             }
         }
 
@@ -1067,7 +1067,7 @@ class Disassembler {
             Disassembler.this.println(this.prefix + "RuntimeInvisibleParameterAnnotations:");
             for (ParameterAnnotation pa : ripaa.parameterAnnotations) {
                 for (Annotation a : pa.annotations) {
-                    Disassembler.this.println(this.prefix + "  " + a.toString());
+                    Disassembler.this.println(this.prefix + "  " + Disassembler.this.beautify(a.toString()));
                 }
             }
         }
@@ -1077,7 +1077,7 @@ class Disassembler {
             Disassembler.this.println(this.prefix + "RuntimeVisibleParameterAnnotations:");
             for (ParameterAnnotation pa : rvpaa.parameterAnnotations) {
                 for (Annotation a : pa.annotations) {
-                    Disassembler.this.println(this.prefix + "  " + a.toString());
+                    Disassembler.this.println(this.prefix + "  " + Disassembler.this.beautify(a.toString()));
                 }
             }
         }
@@ -1160,8 +1160,12 @@ class Disassembler {
                 final TypeSignature pts = it.next();
 
                 // Parameter annotations.
-                if (ipas.hasNext()) for (Annotation a : ipas.next().annotations) this.print(a.toString() + ' ');
-                if (vpas.hasNext()) for (Annotation a : vpas.next().annotations) this.print(a.toString() + ' ');
+                if (ipas.hasNext()) {
+                    for (Annotation a : ipas.next().annotations) this.print(this.beautify(a.toString()) + ' ');
+                }
+                if (vpas.hasNext()) {
+                    for (Annotation a : vpas.next().annotations) this.print(this.beautify(a.toString()) + ' ');
+                }
 
                 // Parameter type.
                 if (varargs && !it.hasNext() && pts instanceof ArrayTypeSignature) {
@@ -1190,7 +1194,6 @@ class Disassembler {
         List<ExceptionTableEntry>          exceptionTable,
         @Nullable LineNumberTableAttribute lineNumberTableAttribute,
         Map<Integer, String>               sourceLines,
-        ConstantPool                       cp,
         Method                             method
     ) throws IOException {
 
@@ -1254,7 +1257,7 @@ class Disassembler {
                         try {
                             lines.put(
                                 instructionOffset,
-                                this.disassembleInstruction(instruction, dis, instructionOffset, method, cp)
+                                this.disassembleInstruction(instruction, dis, instructionOffset, method)
                             );
                         } catch (RuntimeException rte) {
                             for (Iterator<Entry<Integer, String>> it = lines.entrySet().iterator(); it.hasNext();) {
@@ -1388,8 +1391,7 @@ class Disassembler {
         Instruction     instruction,
         DataInputStream dis,
         int             instructionOffset,
-        Method          method,
-        ConstantPool    cp
+        Method          method
     ) throws IOException {
 
         Operand[] operands = instruction.getOperands();
@@ -1400,7 +1402,7 @@ class Disassembler {
         f.format("%-15s", instruction.getMnemonic());
 
         for (int i = 0; i < operands.length; ++i) {
-            f.format(" %s", operands[i].disassemble(dis, instructionOffset, method, cp, this));
+            f.format(" %s", operands[i].disassemble(dis, instructionOffset, method, this));
         }
 
         return f.toString();
@@ -1680,11 +1682,10 @@ class Disassembler {
                                 DataInputStream dis,
                                 int             instructionOffset,
                                 Method          method,
-                                ConstantPool    cp,
                                 Disassembler    d
                             ) throws IOException {
                                 short  index = (short) (0xff & dis.readByte());
-                                String t     = cp.get(
+                                String t     = method.getClassFile().constantPool.get(
                                     index,
                                     ConstantClassOrFloatOrIntegerOrStringInfo.class
                                 ).toString();
@@ -1702,11 +1703,10 @@ class Disassembler {
                                 DataInputStream dis,
                                 int             instructionOffset,
                                 Method          method,
-                                ConstantPool    cp,
                                 Disassembler    d
                             ) throws IOException {
                                 short  index = dis.readShort();
-                                String t     = cp.get(
+                                String t     = method.getClassFile().constantPool.get(
                                     index,
                                     ConstantClassOrFloatOrIntegerOrStringInfo.class
                                 ).toString();
@@ -1724,11 +1724,13 @@ class Disassembler {
                                 DataInputStream dis,
                                 int             instructionOffset,
                                 Method          method,
-                                ConstantPool    cp,
                                 Disassembler    d
                             ) throws IOException {
                                 short  index = dis.readShort();
-                                String t     = cp.get(index, ConstantDoubleOrLongOrStringInfo.class).toString();
+                                String t     = method.getClassFile().constantPool.get(
+                                    index,
+                                    ConstantDoubleOrLongOrStringInfo.class
+                                ).toString();
                                 if (d.verbose) t += " (" + (0xffff & index) + ")";
                                 return t;
                             }
@@ -1742,12 +1744,16 @@ class Disassembler {
                                 DataInputStream dis,
                                 int             instructionOffset,
                                 Method          method,
-                                ConstantPool    cp,
                                 Disassembler    d
                             ) throws IOException {
-                                short                index = dis.readShort();
-                                ConstantFieldrefInfo fr    = cp.get(index, ConstantFieldrefInfo.class);
-                                String               t     = (
+                                short index = dis.readShort();
+
+                                ConstantFieldrefInfo fr = method.getClassFile().constantPool.get(
+                                    index,
+                                    ConstantFieldrefInfo.class
+                                );
+
+                                String t = (
                                     d.beautify(d.decodeFieldDescriptor(fr.nameAndType.descriptor.bytes).toString())
                                     + ' '
                                     + d.beautify(fr.clasS.name)
@@ -1767,12 +1773,16 @@ class Disassembler {
                                 DataInputStream dis,
                                 int             instructionOffset,
                                 Method          method,
-                                ConstantPool    cp,
                                 Disassembler    d
                             ) throws IOException {
-                                short                 index = dis.readShort();
-                                ConstantMethodrefInfo mr    = cp.get(index, ConstantMethodrefInfo.class);
-                                String                t     = d.beautify(
+                                short index = dis.readShort();
+
+                                ConstantMethodrefInfo mr = method.getClassFile().constantPool.get(
+                                    index,
+                                    ConstantMethodrefInfo.class
+                                );
+
+                                String t = d.beautify(
                                     d.decodeMethodDescriptor(mr.nameAndType.descriptor.bytes).toString(
                                         mr.clasS.name,
                                         mr.nameAndType.name.bytes
@@ -1791,7 +1801,6 @@ class Disassembler {
                                 DataInputStream dis,
                                 int             instructionOffset,
                                 Method          method,
-                                ConstantPool    cp,
                                 Disassembler    d
                             ) throws IOException {
 
@@ -1799,8 +1808,10 @@ class Disassembler {
                                 dis.readByte();
                                 dis.readByte();
 
-                                ConstantInterfaceMethodrefInfo
-                                imr = cp.get(index, ConstantInterfaceMethodrefInfo.class);
+                                ConstantInterfaceMethodrefInfo imr = method.getClassFile().constantPool.get(
+                                    index,
+                                    ConstantInterfaceMethodrefInfo.class
+                                );
 
                                 String t = d.beautify(
                                     d
@@ -1820,14 +1831,16 @@ class Disassembler {
                                 DataInputStream dis,
                                 int             instructionOffset,
                                 Method          method,
-                                ConstantPool    cp,
                                 Disassembler    d
                             ) throws IOException {
 
                                 short index = dis.readShort();
 
                                 ConstantInterfaceMethodrefOrMethodrefInfo
-                                imromr = cp.get(index, ConstantInterfaceMethodrefOrMethodrefInfo.class);
+                                imromr = method.getClassFile().constantPool.get(
+                                    index,
+                                    ConstantInterfaceMethodrefOrMethodrefInfo.class
+                                );
 
                                 String t = d.beautify(
                                     d
@@ -1847,14 +1860,17 @@ class Disassembler {
                                 DataInputStream dis,
                                 int             instructionOffset,
                                 Method          method,
-                                ConstantPool    cp,
                                 Disassembler    d
                             ) throws IOException {
 
-                                short  index = dis.readShort();
+                                short index = dis.readShort();
 
-                                String name = cp.get(index, ConstantClassInfo.class).name;
-                                String t    = d.beautify(
+                                String name = method.getClassFile().constantPool.get(
+                                    index,
+                                    ConstantClassInfo.class
+                                ).name;
+
+                                String t = d.beautify(
                                     name.startsWith("[")
                                     ? d.decodeFieldDescriptor(name).toString()
                                     : name.replace('/', '.')
@@ -1872,7 +1888,6 @@ class Disassembler {
                                 DataInputStream dis,
                                 int             instructionOffset,
                                 Method          method,
-                                ConstantPool    cp,
                                 Disassembler    d
                             ) throws IOException {
 
@@ -1897,7 +1912,6 @@ class Disassembler {
                                 DataInputStream dis,
                                 int             instructionOffset,
                                 Method          method,
-                                ConstantPool    cp,
                                 Disassembler    d
                             ) throws IOException {
 
@@ -1921,7 +1935,6 @@ class Disassembler {
                                 DataInputStream dis,
                                 int             instructionOffset,
                                 Method          method,
-                                ConstantPool    cp,
                                 Disassembler    d
                             ) {
 
@@ -1940,7 +1953,6 @@ class Disassembler {
                                 DataInputStream dis,
                                 int             instructionOffset,
                                 Method          method,
-                                ConstantPool    cp,
                                 Disassembler    d
                             ) throws IOException { return d.branchTarget(instructionOffset + dis.readShort()); }
                         };
@@ -1953,7 +1965,6 @@ class Disassembler {
                                 DataInputStream dis,
                                 int             instructionOffset,
                                 Method          method,
-                                ConstantPool    cp,
                                 Disassembler    d
                             ) throws IOException { return d.branchTarget(instructionOffset + dis.readInt()); }
                         };
@@ -1966,7 +1977,6 @@ class Disassembler {
                                 DataInputStream dis,
                                 int             instructionOffset,
                                 Method          method,
-                                ConstantPool    cp,
                                 Disassembler    d
                             ) throws IOException { return Integer.toString(dis.readByte()); }
                         };
@@ -1979,7 +1989,6 @@ class Disassembler {
                                 DataInputStream dis,
                                 int             instructionOffset,
                                 Method          method,
-                                ConstantPool    cp,
                                 Disassembler    d
                             ) throws IOException { return Integer.toString(0xff & dis.readByte()); }
                         };
@@ -1992,7 +2001,6 @@ class Disassembler {
                                 DataInputStream dis,
                                 int             instructionOffset,
                                 Method          method,
-                                ConstantPool    cp,
                                 Disassembler    d
                             ) throws IOException {
                                 byte b = dis.readByte();
@@ -2018,7 +2026,6 @@ class Disassembler {
                                 DataInputStream dis,
                                 int             instructionOffset,
                                 Method          method,
-                                ConstantPool    cp,
                                 Disassembler    d
                             ) throws IOException { return Integer.toString(dis.readShort()); }
                         };
@@ -2031,7 +2038,6 @@ class Disassembler {
                                 DataInputStream dis,
                                 int             instructionOffset,
                                 Method          method,
-                                ConstantPool    cp,
                                 Disassembler    d
                             ) throws IOException {
                                 int npads = 3 - (instructionOffset % 4);
@@ -2068,7 +2074,6 @@ class Disassembler {
                                 DataInputStream dis,
                                 int             instructionOffset,
                                 Method          method,
-                                ConstantPool    cp,
                                 Disassembler    d
                             ) throws IOException {
                                 int npads = 3 - (instructionOffset % 4);
@@ -2105,7 +2110,6 @@ class Disassembler {
                                 DataInputStream dis,
                                 int             instructionOffset,
                                 Method          method,
-                                ConstantPool    cp,
                                 Disassembler    d
                             ) throws IOException {
                                 short index = dis.readShort();
@@ -2114,10 +2118,16 @@ class Disassembler {
                                 }
 
                                 BootstrapMethod bm = method.getBootstrapMethodsAttribute().bootstrapMethods.get(
-                                    cp.get(index, ConstantInvokeDynamicInfo.class).bootstrapMethodAttrIndex
+                                    method.getClassFile().constantPool.get(
+                                        index,
+                                        ConstantInvokeDynamicInfo.class
+                                    ).bootstrapMethodAttrIndex
                                 );
 
-                                return bm + "." + cp.get(index, ConstantInvokeDynamicInfo.class).nameAndType;
+                                return bm + "." + method.getClassFile().constantPool.get(
+                                    index,
+                                    ConstantInvokeDynamicInfo.class
+                                ).nameAndType;
                             }
                         };
                     } else
@@ -2129,7 +2139,6 @@ class Disassembler {
                                 DataInputStream dis,
                                 int             instructionOffset,
                                 Method          method,
-                                ConstantPool    cp,
                                 Disassembler    d
                             ) throws IOException {
                                 int         subopcode       = 0xff & dis.readByte();
@@ -2137,7 +2146,7 @@ class Disassembler {
                                 if (wideInstruction == null) {
                                     return "Invalid opcode " + subopcode + " after opcode WIDE";
                                 }
-                                return d.disassembleInstruction(wideInstruction, dis, instructionOffset, method, cp);
+                                return d.disassembleInstruction(wideInstruction, dis, instructionOffset, method);
                             }
                         };
                     } else
@@ -2362,7 +2371,6 @@ class Disassembler {
             DataInputStream dis,
             int             instructionOffset,
             Method          method,
-            ConstantPool    cp,
             Disassembler    d
         ) throws IOException;
     }
@@ -2402,38 +2410,56 @@ class Disassembler {
     private static String
     decodeAccess(short n) {
         StringBuilder sb = new StringBuilder();
-        if ((n & ClassFile.ACC_PUBLIC) != 0)       { sb.append("public ");       n &= ~ClassFile.ACC_PUBLIC; }
-        if ((n & ClassFile.ACC_PRIVATE) != 0)      { sb.append("private ");      n &= ~ClassFile.ACC_PRIVATE; }
-        if ((n & ClassFile.ACC_PROTECTED) != 0)    { sb.append("protected ");    n &= ~ClassFile.ACC_PROTECTED; }
+        if ((n & ClassFile.ACC_PUBLIC)       != 0) { sb.append("public ");       n &= ~ClassFile.ACC_PUBLIC;       }
+        if ((n & ClassFile.ACC_PRIVATE)      != 0) { sb.append("private ");      n &= ~ClassFile.ACC_PRIVATE;      }
+        if ((n & ClassFile.ACC_PROTECTED)    != 0) { sb.append("protected ");    n &= ~ClassFile.ACC_PROTECTED;    }
 
-        if ((n & ClassFile.ACC_ABSTRACT) != 0)     { sb.append("abstract ");     n &= ~ClassFile.ACC_ABSTRACT; }
-        if ((n & ClassFile.ACC_STATIC) != 0)       { sb.append("static ");       n &= ~ClassFile.ACC_STATIC; }
-        if ((n & ClassFile.ACC_FINAL) != 0)        { sb.append("final ");        n &= ~ClassFile.ACC_FINAL; }
-        if ((n & ClassFile.ACC_TRANSIENT) != 0)    { sb.append("transient ");    n &= ~ClassFile.ACC_TRANSIENT; }
-        if ((n & ClassFile.ACC_VOLATILE) != 0)     { sb.append("volatile ");     n &= ~ClassFile.ACC_VOLATILE; }
+        if ((n & ClassFile.ACC_ABSTRACT)     != 0) { sb.append("abstract ");     n &= ~ClassFile.ACC_ABSTRACT;     }
+        if ((n & ClassFile.ACC_STATIC)       != 0) { sb.append("static ");       n &= ~ClassFile.ACC_STATIC;       }
+        if ((n & ClassFile.ACC_FINAL)        != 0) { sb.append("final ");        n &= ~ClassFile.ACC_FINAL;        }
+        if ((n & ClassFile.ACC_TRANSIENT)    != 0) { sb.append("transient ");    n &= ~ClassFile.ACC_TRANSIENT;    }
+        if ((n & ClassFile.ACC_VOLATILE)     != 0) { sb.append("volatile ");     n &= ~ClassFile.ACC_VOLATILE;     }
         if ((n & ClassFile.ACC_SYNCHRONIZED) != 0) { sb.append("synchronized "); n &= ~ClassFile.ACC_SYNCHRONIZED; }
-        if ((n & ClassFile.ACC_NATIVE) != 0)       { sb.append("native ");       n &= ~ClassFile.ACC_NATIVE; }
-        if ((n & ClassFile.ACC_STRICT) != 0)       { sb.append("strictfp ");     n &= ~ClassFile.ACC_STRICT; }
-        if ((n & ClassFile.ACC_SYNTHETIC) != 0)    { sb.append("synthetic ");    n &= ~ClassFile.ACC_SYNTHETIC; }
+        if ((n & ClassFile.ACC_NATIVE)       != 0) { sb.append("native ");       n &= ~ClassFile.ACC_NATIVE;       }
+        if ((n & ClassFile.ACC_STRICT)       != 0) { sb.append("strictfp ");     n &= ~ClassFile.ACC_STRICT;       }
+        if ((n & ClassFile.ACC_SYNTHETIC)    != 0) { sb.append("synthetic ");    n &= ~ClassFile.ACC_SYNTHETIC;    }
 
-        if ((n & ClassFile.ACC_ANNOTATION) != 0)   { sb.append("@");             n &= ~ClassFile.ACC_ANNOTATION; }
-        if ((n & ClassFile.ACC_INTERFACE) != 0)    { sb.append("interface ");    n &= ~ClassFile.ACC_INTERFACE; }
-        if ((n & ClassFile.ACC_ENUM) != 0)         { sb.append("enum ");         n &= ~ClassFile.ACC_ENUM; }
+        if ((n & ClassFile.ACC_ANNOTATION)   != 0) { sb.append("@");             n &= ~ClassFile.ACC_ANNOTATION;   }
+        if ((n & ClassFile.ACC_INTERFACE)    != 0) { sb.append("interface ");    n &= ~ClassFile.ACC_INTERFACE;    }
+        if ((n & ClassFile.ACC_ENUM)         != 0) { sb.append("enum ");         n &= ~ClassFile.ACC_ENUM;         }
 
         if (n != 0) sb.append("+ " + n + " ");
+
         return sb.toString();
     }
 
+    private static String
+    decodeClassOrInterfaceAccess(short n) {
+
+        String result = Disassembler.decodeAccess(n);
+
+        // For enums, annotations and interfaces, the keyword is already part of the result, but not for classes.
+        if ((n & (ClassFile.ACC_ENUM | ClassFile.ACC_ANNOTATION | ClassFile.ACC_INTERFACE)) == 0) {
+            result += "class ";
+        }
+
+        return result;
+    }
+
+    /**
+     * Scans the given string for type names, and "shortens" these, as appropriate, for better readability.
+     */
     private String
     beautify(String s) {
         int i = 0;
         for (;;) {
 
             // Find the next type name.
-            for (;;) {
+            for (;; i++) {
                 if (i == s.length()) return s;
-                if (Character.isJavaIdentifierStart(s.charAt(i))) break;
-                i++;
+                char c = s.charAt(i);
+                if (c == '"') return s; // String literal ahead; stop beautifying.
+                if (Character.isJavaIdentifierStart(c)) break;
             }
 
             // Strip redundant prefixes from the type name.
@@ -2445,11 +2471,10 @@ class Disassembler {
             }
 
             // Skip the rest of the type name.
-            for (;;) {
+            for (;; i++) {
                 if (i == s.length()) return s;
                 char c = s.charAt(i);
                 if (c != '.' && !Character.isJavaIdentifierPart(c)) break;
-                i++;
             }
         }
     }
