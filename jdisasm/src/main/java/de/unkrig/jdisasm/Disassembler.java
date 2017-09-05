@@ -44,7 +44,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.LineNumberReader;
@@ -58,20 +57,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Formatter;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.StringTokenizer;
-import java.util.TreeMap;
 import java.util.regex.Pattern;
 
-import de.unkrig.commons.nullanalysis.NotNullByDefault;
 import de.unkrig.commons.nullanalysis.Nullable;
 import de.unkrig.jdisasm.ClassFile.AccessFlags;
 import de.unkrig.jdisasm.ClassFile.Annotation;
@@ -84,7 +75,6 @@ import de.unkrig.jdisasm.ClassFile.CodeAttribute;
 import de.unkrig.jdisasm.ClassFile.ConstantValueAttribute;
 import de.unkrig.jdisasm.ClassFile.DeprecatedAttribute;
 import de.unkrig.jdisasm.ClassFile.EnclosingMethodAttribute;
-import de.unkrig.jdisasm.ClassFile.ExceptionTableEntry;
 import de.unkrig.jdisasm.ClassFile.ExceptionsAttribute;
 import de.unkrig.jdisasm.ClassFile.Field;
 import de.unkrig.jdisasm.ClassFile.InnerClassesAttribute;
@@ -103,13 +93,6 @@ import de.unkrig.jdisasm.ClassFile.SourceFileAttribute;
 import de.unkrig.jdisasm.ClassFile.SyntheticAttribute;
 import de.unkrig.jdisasm.ClassFile.UnknownAttribute;
 import de.unkrig.jdisasm.ConstantPool.ConstantClassInfo;
-import de.unkrig.jdisasm.ConstantPool.ConstantClassOrFloatOrIntegerOrStringInfo;
-import de.unkrig.jdisasm.ConstantPool.ConstantDoubleOrLongOrStringInfo;
-import de.unkrig.jdisasm.ConstantPool.ConstantFieldrefInfo;
-import de.unkrig.jdisasm.ConstantPool.ConstantInterfaceMethodrefInfo;
-import de.unkrig.jdisasm.ConstantPool.ConstantInterfaceMethodrefOrMethodrefInfo;
-import de.unkrig.jdisasm.ConstantPool.ConstantInvokeDynamicInfo;
-import de.unkrig.jdisasm.ConstantPool.ConstantMethodrefInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantNameAndTypeInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantPoolEntry;
 import de.unkrig.jdisasm.SignatureParser.ArrayTypeSignature;
@@ -135,14 +118,13 @@ import de.unkrig.jdisasm.SignatureParser.TypeSignature;
 public
 class Disassembler {
 
-    // CHECKSTYLE LineLengthCheck:OFF
+    // SUPPRESS CHECKSTYLE LineLength:6
     private static final List<ConstantClassInfo>   NO_CONSTANT_CLASS_INFOS   = Collections.<ConstantClassInfo>emptyList();
     private static final List<ThrowsSignature>     NO_THROWS_SIGNATURES      = Collections.<ThrowsSignature>emptyList();
     private static final List<TypeSignature>       NO_TYPE_SIGNATURES        = Collections.<TypeSignature>emptyList();
     private static final List<ClassTypeSignature>  NO_CLASS_TYPE_SIGNATURES  = Collections.<ClassTypeSignature>emptyList();
     private static final List<FormalTypeParameter> NO_FORMAL_TYPE_PARAMETERS = Collections.<FormalTypeParameter>emptyList();
     private static final List<ParameterAnnotation> NO_PARAMETER_ANNOTATIONS  = Collections.<ParameterAnnotation>emptyList();
-    // CHECKSTYLE LineLengthCheck:ON
 
     // Configuration variables.
 
@@ -169,8 +151,6 @@ class Disassembler {
      * "" for the default package; with a trailing period otherwise.
      */
     @Nullable private String thisClassPackageName;
-
-    @Nullable private Map<Integer /*offset*/, String /*label*/> branchTargets;
 
     private enum AttributeContext { CLASS, FIELD, METHOD }
 
@@ -749,13 +729,17 @@ class Disassembler {
                 } else {
                     this.println(" {");
                     try {
-                        this.disassembleBytecode(
+                        new BytecodeDisassembler(
                             new ByteArrayInputStream(ca.code),
                             ca.exceptionTable,
                             ca.lineNumberTableAttribute,
                             sourceLines,
-                            method
-                        );
+                            method,
+                            this.symbolicLabels,
+                            this.verbose,
+                            this.hideLines,
+                            this
+                        ).disassembleBytecode(this.pw);
                     } catch (IOException ignored) {
                         ;
                     }
@@ -1196,987 +1180,8 @@ class Disassembler {
         this.print(")");
     }
 
-    /**
-     * Reads byte code from the given {@link InputStream} and disassemble it.
-     */
-    private void
-    disassembleBytecode(
-        InputStream                        is,
-        List<ExceptionTableEntry>          exceptionTable,
-        @Nullable LineNumberTableAttribute lineNumberTableAttribute,
-        Map<Integer, String>               sourceLines,
-        Method                             method
-    ) throws IOException {
-
-        assert this.branchTargets == null;
-        this.branchTargets = new HashMap<Integer, String>();
-        try {
-
-            // Analyze the TRY bodies.
-
-            SortedMap<Integer /*startPC*/, Set<Integer /*endPC*/>>
-            tryStarts = new TreeMap<Integer, Set<Integer>>();
-
-            SortedMap<Integer /*endPC*/, SortedMap<Integer /*startPC*/, List<ExceptionTableEntry>>>
-            tryEnds = new TreeMap<Integer, SortedMap<Integer, List<ExceptionTableEntry>>>();
-
-            for (ExceptionTableEntry e : exceptionTable) {
-
-                // Register the entry in "tryStarts".
-                {
-                    Set<Integer> s = tryStarts.get(e.startPc);
-                    if (s == null) {
-                        s = new HashSet<Integer>();
-                        tryStarts.put(e.startPc, s);
-                    }
-                    s.add(e.endPc);
-                }
-
-                // Register the entry in "tryEnds".
-                {
-                    SortedMap<Integer, List<ExceptionTableEntry>> m = tryEnds.get(e.endPc);
-                    if (m == null) {
-                        m = new TreeMap<Integer, List<ExceptionTableEntry>>(Collections.reverseOrder());
-                        tryEnds.put(e.endPc, m);
-                    }
-                    List<ExceptionTableEntry> l = m.get(e.startPc);
-                    if (l == null) {
-                        l = new ArrayList<ExceptionTableEntry>();
-                        m.put(e.startPc, l);
-                    }
-                    l.add(e);
-                }
-            }
-
-            // Now disassemble the byte code into a sequence of lines.
-            SortedMap<Integer /*instructionOffset*/, String /*text*/> lines;
-            {
-                CountingInputStream cis = new CountingInputStream(is);
-                DataInputStream     dis = new DataInputStream(cis);
-
-                lines = new TreeMap<Integer, String>();
-                for (;;) {
-                    int instructionOffset = (int) cis.getCount();
-
-                    int opcode = dis.read();
-                    if (opcode == -1) break;
-
-                    Instruction instruction = Disassembler.OPCODE_TO_INSTRUCTION[opcode];
-                    if (instruction == null) {
-                        lines.put(instructionOffset, "??? (invalid opcode \"" + opcode + "\")");
-                    } else {
-                        try {
-                            lines.put(
-                                instructionOffset,
-                                this.disassembleInstruction(instruction, dis, instructionOffset, method)
-                            );
-                        } catch (RuntimeException rte) {
-                            for (Iterator<Entry<Integer, String>> it = lines.entrySet().iterator(); it.hasNext();) {
-                                Entry<Integer, String> e = it.next();
-                                this.println("#" + e.getKey() + " " + e.getValue());
-                            }
-                            throw new RuntimeException(
-                                "Instruction '" + instruction + "', pc=" + instructionOffset,
-                                rte
-                            );
-                        }
-                    }
-                }
-            }
-
-            // Format and print the disassembly lines.
-            String indentation = "        ";
-            for (Entry<Integer, String> e : lines.entrySet()) {
-                final int    instructionOffset = e.getKey();
-                final String text              = e.getValue();
-
-                // Print ends of TRY bodies.
-                for (Iterator<Entry<Integer, SortedMap<Integer, List<ExceptionTableEntry>>>> it = (
-                    tryEnds.entrySet().iterator()
-                ); it.hasNext();) {
-                    Entry<Integer, SortedMap<Integer, List<ExceptionTableEntry>>> e2 = it.next();
-
-                    int endPc = e2.getKey();
-                    if (endPc > instructionOffset) break;
-
-                    SortedMap<Integer, List<ExceptionTableEntry>> startPc2Ete = e2.getValue();
-                    for (List<ExceptionTableEntry> etes : startPc2Ete.values()) {
-
-                        if (endPc < instructionOffset) {
-                            this.error(
-                                "Exception table entry ends at invalid code array index "
-                                + endPc
-                                + " (current instruction offset is "
-                                + instructionOffset
-                                + ")"
-                            );
-                        }
-                        indentation = indentation.substring(4);
-                        this.print(indentation + "} catch (");
-                        for (Iterator<ExceptionTableEntry> it2 = etes.iterator();;) {
-                            ExceptionTableEntry ete = it2.next();
-                            ConstantClassInfo   ct  = ete.catchType;
-                            this.print(
-                                (ct == null ? "[all exceptions]" : this.beautify(ct.name))
-                                + " => "
-                                + this.branchTarget(ete.handlerPc)
-                            );
-                            if (!it2.hasNext()) break;
-                            this.print(", ");
-                        }
-                        this.println(")");
-                    }
-                    it.remove();
-                }
-
-                // Print instruction offsets only for branch targets.
-                {
-                    Map<Integer, String> bts = this.branchTargets;
-                    assert bts != null;
-                    String label = bts.get(instructionOffset);
-                    if (label != null) this.println(label);
-                }
-
-                // Print beginnings of TRY bodies.
-                for (Iterator<Entry<Integer, Set<Integer>>> it = tryStarts.entrySet().iterator(); it.hasNext();) {
-                    Entry<Integer, Set<Integer>> sc      = it.next();
-                    Integer                      startPc = sc.getKey();
-                    if (startPc > instructionOffset) break;
-
-                    for (int i = sc.getValue().size(); i > 0; i--) {
-                        if (startPc < instructionOffset) {
-                            this.error(
-                                "Exception table entry starts at invalid code array index "
-                                + startPc
-                                + " (current instruction offset is "
-                                + instructionOffset
-                                + ")"
-                            );
-                        }
-                        this.println(indentation + "try {");
-                        indentation += "    ";
-                    }
-                    it.remove();
-                }
-
-                // Print source line and/or line number.
-                PRINT_SOURCE_LINE: {
-                    if (lineNumberTableAttribute == null) break PRINT_SOURCE_LINE;
-
-                    int lineNumber = Disassembler.findLineNumber(lineNumberTableAttribute, instructionOffset);
-                    if (lineNumber == -1) break PRINT_SOURCE_LINE;
-
-                    String sourceLine = sourceLines.get(lineNumber);
-                    if (sourceLine == null && this.hideLines) break PRINT_SOURCE_LINE;
-
-                    StringBuilder sb = new StringBuilder(indentation);
-                    if (sourceLine == null) {
-                        sb.append("// Line ").append(lineNumber);
-                    } else {
-                        sb.append("// ");
-                        if (sb.length() < 40) {
-                            char[] spc = new char[40 - sb.length()];
-                            Arrays.fill(spc, ' ');
-                            sb.append(spc);
-                        }
-                        if (!this.hideLines) {
-                            sb.append("Line ").append(lineNumber).append(": ");
-                        }
-                        sb.append(sourceLine);
-                    }
-                    this.println(sb.toString());
-                }
-
-                this.println(indentation + text);
-            }
-        } finally {
-            this.branchTargets = null;
-        }
-    }
-
-    /**
-     * Converts one instruction into a string, e.g. {@code "invokespecial   java.io.IOException(String)"}.
-     */
-    private String
-    disassembleInstruction(
-        Instruction     instruction,
-        DataInputStream dis,
-        int             instructionOffset,
-        Method          method
-    ) throws IOException {
-
-        Operand[] operands = instruction.getOperands();
-
-        if (operands.length == 0) return instruction.getMnemonic();
-
-        Formatter f = new Formatter();
-        f.format("%-15s", instruction.getMnemonic());
-
-        for (int i = 0; i < operands.length; ++i) {
-            f.format(" %s", operands[i].disassemble(dis, instructionOffset, method, this));
-        }
-
-        return f.toString();
-    }
-
-    private String
-    branchTarget(int offset) {
-        Map<Integer, String> bts = this.branchTargets;
-        assert bts != null;
-        String label = bts.get(offset);
-        if (label == null) {
-            label = this.symbolicLabels ? "L" + (1 + bts.size()) : "#" + offset;
-            bts.put(offset, label);
-        }
-        return label;
-    }
-
-    /**
-     * @return -1 iff the offset is not associated with a line number
-     */
-    private static int
-    findLineNumber(LineNumberTableAttribute lnta, int offset) {
-        for (LineNumberTableEntry lnte : lnta.entries) {
-            if (lnte.startPc == offset) return lnte.lineNumber;
-        }
-        return -1;
-    }
-
-    private static final Instruction[]
-    OPCODE_TO_INSTRUCTION = Disassembler.compileInstructions(
-        ""
-        + "50  aaload\n"
-        + "83  aastore\n"
-        + "1   aconst_null\n"
-        + "25  aload           localvariableindex1\n"
-        + "42  aload_0         implicitlocalvariableindex\n"
-        + "43  aload_1         implicitlocalvariableindex\n"
-        + "44  aload_2         implicitlocalvariableindex\n"
-        + "45  aload_3         implicitlocalvariableindex\n"
-        + "189 anewarray       class2\n"
-        + "176 areturn\n"
-        + "190 arraylength\n"
-        + "58  astore          localvariableindex1\n"
-        + "75  astore_0        implicitlocalvariableindex\n"
-        + "76  astore_1        implicitlocalvariableindex\n"
-        + "77  astore_2        implicitlocalvariableindex\n"
-        + "78  astore_3        implicitlocalvariableindex\n"
-        + "191 athrow\n"
-        + "51  baload\n"
-        + "84  bastore\n"
-        + "16  bipush          signedbyte\n"
-        + "52  caload\n"
-        + "85  castore\n"
-        + "192 checkcast       class2\n"
-        + "144 d2f\n"
-        + "142 d2i\n"
-        + "143 d2l\n"
-        + "99  dadd\n"
-        + "49  daload\n"
-        + "82  dastore\n"
-        + "152 dcmpg\n"
-        + "151 dcmpl\n"
-        + "14  dconst_0\n"
-        + "15  dconst_1\n"
-        + "111 ddiv\n"
-        + "24  dload           localvariableindex1\n"
-        + "38  dload_0         implicitlocalvariableindex\n"
-        + "39  dload_1         implicitlocalvariableindex\n"
-        + "40  dload_2         implicitlocalvariableindex\n"
-        + "41  dload_3         implicitlocalvariableindex\n"
-        + "107 dmul\n"
-        + "119 dneg\n"
-        + "115 drem\n"
-        + "175 dreturn\n"
-        + "57  dstore          localvariableindex1\n"
-        + "71  dstore_0        implicitlocalvariableindex\n"
-        + "72  dstore_1        implicitlocalvariableindex\n"
-        + "73  dstore_2        implicitlocalvariableindex\n"
-        + "74  dstore_3        implicitlocalvariableindex\n"
-        + "103 dsub\n"
-        + "89  dup\n"
-        + "90  dup_x1\n"
-        + "91  dup_x2\n"
-        + "92  dup2\n"
-        + "93  dup2_x1\n"
-        + "94  dup2_x2\n"
-        + "141 f2d\n"
-        + "139 f2i\n"
-        + "140 f2l\n"
-        + "98  fadd\n"
-        + "48  faload\n"
-        + "81  fastore\n"
-        + "150 fcmpg\n"
-        + "149 fcmpl\n"
-        + "11  fconst_0\n"
-        + "12  fconst_1\n"
-        + "13  fconst_2\n"
-        + "110 fdiv\n"
-        + "23  fload           localvariableindex1\n"
-        + "34  fload_0         implicitlocalvariableindex\n"
-        + "35  fload_1         implicitlocalvariableindex\n"
-        + "36  fload_2         implicitlocalvariableindex\n"
-        + "37  fload_3         implicitlocalvariableindex\n"
-        + "106 fmul\n"
-        + "118 fneg\n"
-        + "114 frem\n"
-        + "174 freturn\n"
-        + "56  fstore          localvariableindex1\n"
-        + "67  fstore_0        implicitlocalvariableindex\n"
-        + "68  fstore_1        implicitlocalvariableindex\n"
-        + "69  fstore_2        implicitlocalvariableindex\n"
-        + "70  fstore_3        implicitlocalvariableindex\n"
-        + "102 fsub\n"
-        + "180 getfield        fieldref2\n"
-        + "178 getstatic       fieldref2\n"
-        + "167 goto            branchoffset2\n"
-        + "200 goto_w          branchoffset4\n"
-        + "145 i2b\n"
-        + "146 i2c\n"
-        + "135 i2d\n"
-        + "134 i2f\n"
-        + "133 i2l\n"
-        + "147 i2s\n"
-        + "96  iadd\n"
-        + "46  iaload\n"
-        + "126 iand\n"
-        + "79  iastore\n"
-        + "2   iconst_m1\n"
-        + "3   iconst_0\n"
-        + "4   iconst_1\n"
-        + "5   iconst_2\n"
-        + "6   iconst_3\n"
-        + "7   iconst_4\n"
-        + "8   iconst_5\n"
-        + "108 idiv\n"
-        + "165 if_acmpeq       branchoffset2\n"
-        + "166 if_acmpne       branchoffset2\n"
-        + "159 if_icmpeq       branchoffset2\n"
-        + "160 if_icmpne       branchoffset2\n"
-        + "161 if_icmplt       branchoffset2\n"
-        + "162 if_icmpge       branchoffset2\n"
-        + "163 if_icmpgt       branchoffset2\n"
-        + "164 if_icmple       branchoffset2\n"
-        + "153 ifeq            branchoffset2\n"
-        + "154 ifne            branchoffset2\n"
-        + "155 iflt            branchoffset2\n"
-        + "156 ifge            branchoffset2\n"
-        + "157 ifgt            branchoffset2\n"
-        + "158 ifle            branchoffset2\n"
-        + "199 ifnonnull       branchoffset2\n"
-        + "198 ifnull          branchoffset2\n"
-        + "132 iinc            localvariableindex1 signedbyte\n"
-        + "21  iload           localvariableindex1\n"
-        + "26  iload_0         implicitlocalvariableindex\n"
-        + "27  iload_1         implicitlocalvariableindex\n"
-        + "28  iload_2         implicitlocalvariableindex\n"
-        + "29  iload_3         implicitlocalvariableindex\n"
-        + "104 imul\n"
-        + "116 ineg\n"
-        + "193 instanceof      class2\n"
-        + "186 invokedynamic   dynamiccallsite\n"
-        + "185 invokeinterface interfacemethodref2\n"
-        + "183 invokespecial   interfacemethodreformethodref2\n"
-        + "184 invokestatic    interfacemethodreformethodref2\n"
-        + "182 invokevirtual   methodref2\n"
-        + "128 ior\n"
-        + "112 irem\n"
-        + "172 ireturn\n"
-        + "120 ishl\n"
-        + "122 ishr\n"
-        + "54  istore          localvariableindex1\n"
-        + "59  istore_0        implicitlocalvariableindex\n"
-        + "60  istore_1        implicitlocalvariableindex\n"
-        + "61  istore_2        implicitlocalvariableindex\n"
-        + "62  istore_3        implicitlocalvariableindex\n"
-        + "100 isub\n"
-        + "124 iushr\n"
-        + "130 ixor\n"
-        + "168 jsr             branchoffset2\n"
-        + "201 jsr_w           branchoffset4\n"
-        + "138 l2d\n"
-        + "137 l2f\n"
-        + "136 l2i\n"
-        + "97  ladd\n"
-        + "47  laload\n"
-        + "127 land\n"
-        + "80  lastore\n"
-        + "148 lcmp\n"
-        + "9   lconst_0\n"
-        + "10  lconst_1\n"
-        + "18  ldc             intfloatclassstring1\n"
-        + "19  ldc_w           intfloatclassstring2\n"
-        + "20  ldc2_w          longdouble2\n"
-        + "109 ldiv\n"
-        + "22  lload           localvariableindex1\n"
-        + "30  lload_0         implicitlocalvariableindex\n"
-        + "31  lload_1         implicitlocalvariableindex\n"
-        + "32  lload_2         implicitlocalvariableindex\n"
-        + "33  lload_3         implicitlocalvariableindex\n"
-        + "105 lmul\n"
-        + "117 lneg\n"
-        + "171 lookupswitch    lookupswitch\n"
-        + "129 lor\n"
-        + "113 lrem\n"
-        + "173 lreturn\n"
-        + "121 lshl\n"
-        + "123 lshr\n"
-        + "55  lstore          localvariableindex1\n"
-        + "63  lstore_0        implicitlocalvariableindex\n"
-        + "64  lstore_1        implicitlocalvariableindex\n"
-        + "65  lstore_2        implicitlocalvariableindex\n"
-        + "66  lstore_3        implicitlocalvariableindex\n"
-        + "101 lsub\n"
-        + "125 lushr\n"
-        + "131 lxor\n"
-        + "194 monitorenter\n"
-        + "195 monitorexit\n"
-        + "197 multianewarray  class2 unsignedbyte\n"
-        + "187 new             class2\n"
-        + "188 newarray        atype\n"
-        + "0   nop\n"
-        + "87  pop\n"
-        + "88  pop2\n"
-        + "181 putfield        fieldref2\n"
-        + "179 putstatic       fieldref2\n"
-        + "169 ret             localvariableindex1\n"
-        + "177 return\n"
-        + "53  saload\n"
-        + "86  sastore\n"
-        + "17  sipush          signedshort\n"
-        + "95  swap\n"
-        + "170 tableswitch     tableswitch\n"
-        + "196 wide            wide\n"
-    );
-
-    private static final Instruction[]
-    OPCODE_TO_WIDE_INSTRUCTION = Disassembler.compileInstructions(
-        ""
-        + "21  iload           localvariableindex2\n"
-        + "23  fload           localvariableindex2\n"
-        + "25  aload           localvariableindex2\n"
-        + "22  lload           localvariableindex2\n"
-        + "24  dload           localvariableindex2\n"
-        + "54  istore          localvariableindex2\n"
-        + "56  fstore          localvariableindex2\n"
-        + "58  astore          localvariableindex2\n"
-        + "55  lstore          localvariableindex2\n"
-        + "57  dstore          localvariableindex2\n"
-        + "169 ret             localvariableindex2\n"
-        + "132 iinc            localvariableindex2 signedshort\n"
-    );
-
-    private static Instruction[]
-    compileInstructions(String instructions) {
-        Instruction[] result = new Instruction[256];
-
-        for (StringTokenizer st1 = new StringTokenizer(instructions, "\n"); st1.hasMoreTokens();) {
-
-            StringTokenizer st2 = new StringTokenizer(st1.nextToken());
-
-            final int opcode   = Integer.parseInt(st2.nextToken());
-            String    mnemonic = st2.nextToken();
-
-            Operand[] operands;
-            if (!st2.hasMoreTokens()) {
-                operands = new Operand[0];
-            } else {
-                List<Operand> l = new ArrayList<Operand>();
-                while (st2.hasMoreTokens()) {
-                    String  s = st2.nextToken();
-                    Operand operand;
-                    if ("intfloatclassstring1".equals(s)) {
-                        operand = new Operand() {
-
-                            @Override public String
-                            disassemble(
-                                DataInputStream dis,
-                                int             instructionOffset,
-                                Method          method,
-                                Disassembler    d
-                            ) throws IOException {
-                                short  index = (short) (0xff & dis.readByte());
-                                String t     = method.getClassFile().constantPool.get(
-                                    index,
-                                    ConstantClassOrFloatOrIntegerOrStringInfo.class
-                                ).toString();
-                                if (Character.isJavaIdentifierStart(t.charAt(0))) t = d.beautify(t);
-                                if (d.verbose) t += " (" + (0xffff & index) + ")";
-                                return t;
-                            }
-                        };
-                    } else
-                    if ("intfloatclassstring2".equals(s)) {
-                        operand = new Operand() {
-
-                            @Override public String
-                            disassemble(
-                                DataInputStream dis,
-                                int             instructionOffset,
-                                Method          method,
-                                Disassembler    d
-                            ) throws IOException {
-                                short  index = dis.readShort();
-                                String t     = method.getClassFile().constantPool.get(
-                                    index,
-                                    ConstantClassOrFloatOrIntegerOrStringInfo.class
-                                ).toString();
-                                if (Character.isJavaIdentifierStart(t.charAt(0))) t = d.beautify(t);
-                                if (d.verbose) t += " (" + (0xffff & index) + ")";
-                                return t;
-                            }
-                        };
-                    } else
-                    if ("longdouble2".equals(s)) {
-                        operand = new Operand() {
-
-                            @Override public String
-                            disassemble(
-                                DataInputStream dis,
-                                int             instructionOffset,
-                                Method          method,
-                                Disassembler    d
-                            ) throws IOException {
-                                short  index = dis.readShort();
-                                String t     = method.getClassFile().constantPool.get(
-                                    index,
-                                    ConstantDoubleOrLongOrStringInfo.class
-                                ).toString();
-                                if (d.verbose) t += " (" + (0xffff & index) + ")";
-                                return t;
-                            }
-                        };
-                    } else
-                    if ("fieldref2".equals(s)) {
-                        operand = new Operand() {
-
-                            @Override public String
-                            disassemble(
-                                DataInputStream dis,
-                                int             instructionOffset,
-                                Method          method,
-                                Disassembler    d
-                            ) throws IOException {
-                                short index = dis.readShort();
-
-                                ConstantFieldrefInfo fr = method.getClassFile().constantPool.get(
-                                    index,
-                                    ConstantFieldrefInfo.class
-                                );
-
-                                String t = (
-                                    d.beautify(d.decodeFieldDescriptor(fr.nameAndType.descriptor.bytes).toString())
-                                    + ' '
-                                    + d.beautify(fr.clasS.name)
-                                    + '.'
-                                    + fr.nameAndType.name.bytes
-                                );
-                                if (d.verbose) t += " (" + (0xffff & index) + ")";
-                                return t;
-                            }
-                        };
-                    } else
-                    if ("methodref2".equals(s)) {
-                        operand = new Operand() {
-
-                            @Override public String
-                            disassemble(
-                                DataInputStream dis,
-                                int             instructionOffset,
-                                Method          method,
-                                Disassembler    d
-                            ) throws IOException {
-                                short index = dis.readShort();
-
-                                ConstantMethodrefInfo mr = method.getClassFile().constantPool.get(
-                                    index,
-                                    ConstantMethodrefInfo.class
-                                );
-
-                                String t = d.beautify(
-                                    d.decodeMethodDescriptor(mr.nameAndType.descriptor.bytes).toString(
-                                        mr.clasS.name,
-                                        mr.nameAndType.name.bytes
-                                    )
-                                );
-                                if (d.verbose) t += " (" + (0xffff & index) + ")";
-                                return t;
-                            }
-                        };
-                    } else
-                    if ("interfacemethodref2".equals(s)) {
-                        operand = new Operand() {
-
-                            @Override public String
-                            disassemble(
-                                DataInputStream dis,
-                                int             instructionOffset,
-                                Method          method,
-                                Disassembler    d
-                            ) throws IOException {
-
-                                short index = dis.readShort();
-                                dis.readByte();
-                                dis.readByte();
-
-                                ConstantInterfaceMethodrefInfo imr = method.getClassFile().constantPool.get(
-                                    index,
-                                    ConstantInterfaceMethodrefInfo.class
-                                );
-
-                                String t = d.beautify(
-                                    d
-                                    .decodeMethodDescriptor(imr.nameAndType.descriptor.bytes)
-                                    .toString(imr.clasS.name, imr.nameAndType.name.bytes)
-                                );
-                                if (d.verbose) t += " (" + (0xffff & index) + ")";
-                                return t;
-                            }
-                        };
-                    } else
-                    if ("interfacemethodreformethodref2".equals(s)) {
-                        operand = new Operand() {
-
-                            @Override public String
-                            disassemble(
-                                DataInputStream dis,
-                                int             instructionOffset,
-                                Method          method,
-                                Disassembler    d
-                            ) throws IOException {
-
-                                short index = dis.readShort();
-
-                                ConstantInterfaceMethodrefOrMethodrefInfo
-                                imromr = method.getClassFile().constantPool.get(
-                                    index,
-                                    ConstantInterfaceMethodrefOrMethodrefInfo.class
-                                );
-
-                                String t = d.beautify(
-                                    d
-                                    .decodeMethodDescriptor(imromr.nameAndType.descriptor.bytes)
-                                    .toString(imromr.clasS.name, imromr.nameAndType.name.bytes)
-                                );
-                                if (d.verbose) t += " (" + (0xffff & index) + ")";
-                                return t;
-                            }
-                        };
-                    } else
-                    if ("class2".equals(s)) {
-                        operand = new Operand() {
-
-                            @Override public String
-                            disassemble(
-                                DataInputStream dis,
-                                int             instructionOffset,
-                                Method          method,
-                                Disassembler    d
-                            ) throws IOException {
-
-                                short index = dis.readShort();
-
-                                String name = method.getClassFile().constantPool.get(
-                                    index,
-                                    ConstantClassInfo.class
-                                ).name;
-
-                                String t = d.beautify(
-                                    name.startsWith("[")
-                                    ? d.decodeFieldDescriptor(name).toString()
-                                    : name.replace('/', '.')
-                                );
-                                if (d.verbose) t += " (" + (0xffff & index) + ")";
-                                return t;
-                            }
-                        };
-                    } else
-                    if ("localvariableindex1".equals(s)) {
-                        operand = new Operand() {
-
-                            @Override public String
-                            disassemble(
-                                DataInputStream dis,
-                                int             instructionOffset,
-                                Method          method,
-                                Disassembler    d
-                            ) throws IOException {
-
-                                byte index = dis.readByte();
-
-                                // For an initial assignment (e.g. 'istore 7'), the local variable is only visible
-                                // AFTER this instruction.
-                                LocalVariable lv = d.getLocalVariable(
-                                    (short) (0xff & index),
-                                    instructionOffset + 2, // <==
-                                    method
-                                );
-                                return d.beautify(lv.toString());
-                            }
-                        };
-                    } else
-                    if ("localvariableindex2".equals(s)) {
-                        operand = new Operand() {
-
-                            @Override public String
-                            disassemble(
-                                DataInputStream dis,
-                                int             instructionOffset,
-                                Method          method,
-                                Disassembler    d
-                            ) throws IOException {
-
-                                short index = dis.readShort();
-
-                                // For an initial assignment (e.g. 'wide istore 300'), the local variable is only
-                                // visible AFTER this instruction.
-                                LocalVariable lv = d.getLocalVariable(index, instructionOffset + 4, method);
-                                return d.beautify(lv.toString());
-                            }
-                        };
-                    } else
-                    if ("implicitlocalvariableindex".equals(s)) {
-                        // Strip the lv index from the mnemonic
-                        final short index = Short.parseShort(mnemonic.substring(mnemonic.length() - 1));
-                        mnemonic = mnemonic.substring(0, mnemonic.length() - 2);
-                        operand  = new Operand() {
-
-                            @Override public String
-                            disassemble(
-                                DataInputStream dis,
-                                int             instructionOffset,
-                                Method          method,
-                                Disassembler    d
-                            ) {
-
-                                // For an initial assignment (e.g. 'istore_3'), the local variable is only visible
-                                // AFTER this instruction.
-                                LocalVariable lv = d.getLocalVariable(index, instructionOffset + 1, method);
-                                return d.beautify(lv.toString());
-                            }
-                        };
-                    } else
-                    if ("branchoffset2".equals(s)) {
-                        operand = new Operand() {
-
-                            @Override public String
-                            disassemble(
-                                DataInputStream dis,
-                                int             instructionOffset,
-                                Method          method,
-                                Disassembler    d
-                            ) throws IOException { return d.branchTarget(instructionOffset + dis.readShort()); }
-                        };
-                    } else
-                    if ("branchoffset4".equals(s)) {
-                        operand = new Operand() {
-
-                            @Override public String
-                            disassemble(
-                                DataInputStream dis,
-                                int             instructionOffset,
-                                Method          method,
-                                Disassembler    d
-                            ) throws IOException { return d.branchTarget(instructionOffset + dis.readInt()); }
-                        };
-                    } else
-                    if ("signedbyte".equals(s)) {
-                        operand = new Operand() {
-
-                            @Override public String
-                            disassemble(
-                                DataInputStream dis,
-                                int             instructionOffset,
-                                Method          method,
-                                Disassembler    d
-                            ) throws IOException { return Integer.toString(dis.readByte()); }
-                        };
-                    } else
-                    if ("unsignedbyte".equals(s)) {
-                        operand = new Operand() {
-
-                            @Override public String
-                            disassemble(
-                                DataInputStream dis,
-                                int             instructionOffset,
-                                Method          method,
-                                Disassembler    d
-                            ) throws IOException { return Integer.toString(0xff & dis.readByte()); }
-                        };
-                    } else
-                    if ("atype".equals(s)) {
-                        operand = new Operand() {
-
-                            @Override public String
-                            disassemble(
-                                DataInputStream dis,
-                                int             instructionOffset,
-                                Method          method,
-                                Disassembler    d
-                            ) throws IOException {
-                                byte b = dis.readByte();
-                                return (
-                                    b ==  4 ? "BOOLEAN" :
-                                    b ==  5 ? "CHAR"    :
-                                    b ==  6 ? "FLOAT"   :
-                                    b ==  7 ? "DOUBLE"  :
-                                    b ==  8 ? "BYTE"    :
-                                    b ==  9 ? "SHORT"   :
-                                    b == 10 ? "INT"     :
-                                    b == 11 ? "LONG"    :
-                                    Integer.toString(0xff & b)
-                                );
-                            }
-                        };
-                    } else
-                    if ("signedshort".equals(s)) {
-                        operand = new Operand() {
-
-                            @Override public String
-                            disassemble(
-                                DataInputStream dis,
-                                int             instructionOffset,
-                                Method          method,
-                                Disassembler    d
-                            ) throws IOException { return Integer.toString(dis.readShort()); }
-                        };
-                    } else
-                    if ("tableswitch".equals(s)) {
-                        operand = new Operand() {
-
-                            @Override public String
-                            disassemble(
-                                DataInputStream dis,
-                                int             instructionOffset,
-                                Method          method,
-                                Disassembler    d
-                            ) throws IOException {
-                                int npads = 3 - (instructionOffset % 4);
-                                for (int i = 0; i < npads; ++i) {
-                                    byte padByte = dis.readByte();
-                                    if (padByte != 0) {
-                                        throw new RuntimeException(
-                                            "'tableswitch' pad byte #"
-                                            + i
-                                            + " is not zero, but "
-                                            + (0xff & padByte)
-                                        );
-                                    }
-                                }
-
-                                StringBuilder sb = new StringBuilder("default => ");
-                                sb.append(d.branchTarget(instructionOffset + dis.readInt()));
-
-                                int low  = dis.readInt();
-                                int high = dis.readInt();
-                                for (int i = low; i <= high; ++i) {
-                                    sb.append(", ").append(i).append(" => ");
-                                    sb.append(d.branchTarget(instructionOffset + dis.readInt()));
-                                }
-                                return sb.toString();
-                            }
-                        };
-                    } else
-                    if ("lookupswitch".equals(s)) {
-                        operand = new Operand() {
-
-                            @Override public String
-                            disassemble(
-                                DataInputStream dis,
-                                int             instructionOffset,
-                                Method          method,
-                                Disassembler    d
-                            ) throws IOException {
-                                int npads = 3 - (instructionOffset % 4);
-                                for (int i = 0; i < npads; ++i) {
-                                    byte padByte = dis.readByte();
-                                    if (padByte != (byte) 0) {
-                                        throw new RuntimeException(
-                                            "'lookupswitch' pad byte #"
-                                            + i
-                                            + " is not zero, but "
-                                            + (0xff & padByte)
-                                        );
-                                    }
-                                }
-
-                                StringBuilder sb = new StringBuilder("default => ");
-                                sb.append(d.branchTarget(instructionOffset + dis.readInt()));
-
-                                int npairs = dis.readInt();
-                                for (int i = 0; i < npairs; ++i) {
-                                    int match  = dis.readInt();
-                                    int offset = instructionOffset + dis.readInt();
-                                    sb.append(", ").append(match).append(" => ").append(d.branchTarget(offset));
-                                }
-                                return sb.toString();
-                            }
-                        };
-                    } else
-                    if ("dynamiccallsite".equals(s)) {
-                        operand = new Operand() {
-
-                            @Override public String
-                            disassemble(
-                                DataInputStream dis,
-                                int             instructionOffset,
-                                Method          method,
-                                Disassembler    d
-                            ) throws IOException {
-                                short index = dis.readShort();
-                                if (dis.readByte() != 0 || dis.readByte() != 0) {
-                                    throw new RuntimeException("'invokevirtual' pad byte is not zero");
-                                }
-
-                                BootstrapMethod bm = method.getBootstrapMethodsAttribute().bootstrapMethods.get(
-                                    method.getClassFile().constantPool.get(
-                                        index,
-                                        ConstantInvokeDynamicInfo.class
-                                    ).bootstrapMethodAttrIndex
-                                );
-
-                                return bm + "." + method.getClassFile().constantPool.get(
-                                    index,
-                                    ConstantInvokeDynamicInfo.class
-                                ).nameAndType;
-                            }
-                        };
-                    } else
-                    if ("wide".equals(s)) {
-                        operand = new Operand() {
-
-                            @Override public String
-                            disassemble(
-                                DataInputStream dis,
-                                int             instructionOffset,
-                                Method          method,
-                                Disassembler    d
-                            ) throws IOException {
-                                int         subopcode       = 0xff & dis.readByte();
-                                Instruction wideInstruction = Disassembler.OPCODE_TO_WIDE_INSTRUCTION[subopcode];
-                                if (wideInstruction == null) {
-                                    return "Invalid opcode " + subopcode + " after opcode WIDE";
-                                }
-                                return d.disassembleInstruction(wideInstruction, dis, instructionOffset, method);
-                            }
-                        };
-                    } else
-                    {
-                        throw new RuntimeException("Unknown operand \"" + s + "\"");
-                    }
-                    l.add(operand);
-                }
-                operands = l.toArray(new Operand[l.size()]);
-            }
-
-            result[opcode] = new Instruction(mnemonic, operands);
-        }
-
-        return result;
-    }
-
-    private LocalVariable
-    getLocalVariable(short localVariableIndex, int  instructionOffset, Method method) {
+    LocalVariable
+    getLocalVariable(short localVariableIndex, int instructionOffset, Method method) {
 
         // Calculate index of first parameter.
         int firstParameter = method.accessFlags.is(STATIC) ? 0 : 1;
@@ -2270,7 +1275,7 @@ class Disassembler {
         }
     }
 
-    private MethodTypeSignature
+    MethodTypeSignature
     decodeMethodTypeSignature(String ms) {
         try {
             return SignatureParser.decodeMethodTypeSignature(ms);
@@ -2285,7 +1290,7 @@ class Disassembler {
         }
     }
 
-    private TypeSignature
+    TypeSignature
     decodeFieldDescriptor(String fd) {
         try {
             return SignatureParser.decodeFieldDescriptor(fd);
@@ -2295,7 +1300,7 @@ class Disassembler {
         }
     }
 
-    private MethodTypeSignature
+    MethodTypeSignature
     decodeMethodDescriptor(String md) {
         try {
             return SignatureParser.decodeMethodDescriptor(md);
@@ -2344,77 +1349,6 @@ class Disassembler {
         this.pw.println("*** Error: " + message);
     }
 
-    /**
-     * Static description of a Java byte code instruction.
-     */
-    private static
-    class Instruction {
-
-        private final String    mnemonic;
-        private final Operand[] operands;
-
-        /**
-         * @param mnemonic E.g. {@code "invokevirtual"}
-         * @param operands {@code null} is equivalent to "zero operands"
-         */
-        Instruction(String mnemonic, Operand[] operands) {
-            this.mnemonic = mnemonic;
-            this.operands = operands;
-        }
-        public String    getMnemonic() { return this.mnemonic; }
-        public Operand[] getOperands() { return this.operands; }
-
-        @Override public String
-        toString() { return this.mnemonic; }
-    }
-
-    /**
-     * Static description of an operand of a Java byte code instruction.
-     */
-    private
-    interface Operand {
-
-        /**
-         * @return This operand disassembled
-         */
-        String
-        disassemble(
-            DataInputStream dis,
-            int             instructionOffset,
-            Method          method,
-            Disassembler    d
-        ) throws IOException;
-    }
-
-    /**
-     * An {@link InputStream} that counts how many bytes have been read so far.
-     */
-    @NotNullByDefault(false) private static
-    class CountingInputStream extends FilterInputStream {
-
-        CountingInputStream(InputStream is) {
-            super(is);
-        }
-
-        @Override public int
-        read() throws IOException {
-            int res = super.read();
-            if (res != -1) ++this.count;
-            return res;
-        }
-
-        @Override public int
-        read(byte[] b, int off, int len) throws IOException {
-            int res = super.read(b, off, len);
-            if (res != -1) this.count += res;
-            return res;
-        }
-
-        public long getCount() { return this.count; }
-
-        private long count;
-    }
-
     private static String
     typeAccessFlagsToString(AccessFlags af) {
 
@@ -2432,7 +1366,7 @@ class Disassembler {
     /**
      * Scans the given string for type names, and "shortens" these, as appropriate, for better readability.
      */
-    private String
+    String
     beautify(String s) {
         int i = 0;
         for (;;) {
