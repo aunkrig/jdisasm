@@ -759,7 +759,7 @@ class ClassFile {
     public
     interface AttributeVisitor {
 
-        // CHECKSTYLE MethodCheck:OFF
+        // SUPPRESS CHECKSTYLE JavadocMethod:18
         void visit(AnnotationDefaultAttribute                    ada);
         void visit(CodeAttribute                                 ca);
         void visit(ConstantValueAttribute                        cva);
@@ -778,7 +778,6 @@ class ClassFile {
         void visit(SourceFileAttribute                           sfa);
         void visit(SyntheticAttribute                            sa);
         void visit(BootstrapMethodsAttribute                     bma);
-        // CHECKSTYLE MethodCheck:ON
 
         /**
          * An unknown attribute accepted this visitor.
