@@ -177,11 +177,11 @@ class Disassembler {
     /**
      * Generates a "disassembly document" from one or more Java class files.
      * <dl>
-     *   <dt>{@ code jdisasm [} <var>options</var> {@code ]} <var>files</var></dt>
+     *   <dt>{@code jdisasm [} <var>options</var> {@code ]} <var>files</var></dt>
      *   <dd>
      *     Disassemble the given <var>files</var>, which must be Java class files.
      *   </dd>
-     *   <dt>{@ code jdisasm [} <var>options</var> {@code ]}</dt>
+     *   <dt>{@code jdisasm [} <var>options</var> {@code ]}</dt>
      *   <dd>
      *     Read STDIN and disassemble; STDIN must be Java class file.
      *   </dd>
