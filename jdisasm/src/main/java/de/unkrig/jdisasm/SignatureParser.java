@@ -40,24 +40,35 @@ import de.unkrig.jdisasm.io.charstream.UnexpectedCharacterException;
  * Helper class for parsing signatures and descriptors. See
  * <a href="http://java.sun.com/docs/books/jvms/second_edition/ClassFileFormat-Java5.pdf">Java 5 class file format</a>,
  * section 4.4.4, "Signatures".
+ * <p>
+ *   The various structures that the parser returns (e.g. {@link ClassTypeSignature}) all have {@link
+ *   Object#toString()} methods that convert them into nice, human-readable strings. This conversion can be customized
+ *   using {@link #SignatureParser(Options)} and passing a custom {@link Options} object.
+ * </p>
  */
 public
 class SignatureParser {
 
+    /**
+     * @see SignatureParser
+     * @see SignatureParser#SignatureParser(Options)
+     */
     public
     interface Options {
 
         /**
+         * Optionally modifies package name prefixes before they are used in the various {@link #toString()} methods.
+         *
          * @param  packageSpecifier E.g. {@code ""} (the root package) or {@code "java.lang."}
-         * @return The <var>packageSpecifier</var>, or a beatified version thereof
+         * @return                  The <var>packageSpecifier</var>, or a beautified version thereof
          */
-        String beautifyPackageSpecifier(String packageSpecifier);
+        String beautifyPackageNamePrefix(String packageSpecifier);
     }
 
     public static final Options DEFAULT_OPTIONS = new Options() {
 
         @Override public String
-        beautifyPackageSpecifier(String packageSpecifier) {
+        beautifyPackageNamePrefix(String packageSpecifier) {
             return packageSpecifier;
         }
     };
@@ -181,7 +192,7 @@ class SignatureParser {
 
             @Override public String
             toString() {
-                return SignatureParser.this.options.beautifyPackageSpecifier(packageNamePrefix) + simpleClassName;
+                return SignatureParser.this.options.beautifyPackageNamePrefix(packageNamePrefix) + simpleClassName;
             }
         };
     }
@@ -441,7 +452,7 @@ class SignatureParser {
         }
 
         /**
-         * Converts this class type signature into a nice, human-readable string like '{@code pkg.Outer<T>.Inner<U>}'.
+         * Converts this class type signature into a nice, human-readable string, e.g. {@code "pkg.Outer<T>.Inner<U>"}.
          */
         @Override public String
         toString() {
@@ -450,7 +461,7 @@ class SignatureParser {
 
             StringBuilder sb = (
                 new StringBuilder()
-                .append(this.options.beautifyPackageSpecifier(packageNamePrefix))
+                .append(this.options.beautifyPackageNamePrefix(packageNamePrefix))
                 .append(this.simpleClassName)
             );
 
@@ -784,6 +795,8 @@ class SignatureParser {
 
     private TypeSignature
     parseFieldDescriptor(StringCharStream scs) throws EOFException, UnexpectedCharacterException, SignatureException {
+
+        // A type signatures is a superset of a type descriptor, so use "parseTypeSignature()" for simplicity.
         return this.parseTypeSignature(scs);
     }
 
@@ -794,8 +807,11 @@ class SignatureParser {
 
     private ClassSignature
     parseClassSignature(StringCharStream scs) throws EOFException, SignatureException, UnexpectedCharacterException {
+
         List<FormalTypeParameter> ftps = new ArrayList<SignatureParser.FormalTypeParameter>();
-        if (scs.peekRead('<')) while (!scs.peekRead('>')) ftps.add(this.parseFormalTypeParameter(scs));
+        if (scs.peekRead('<')) {
+        	while (!scs.peekRead('>')) ftps.add(this.parseFormalTypeParameter(scs));
+        }
 
         final ClassTypeSignature cts = this.parseClassTypeSignature(scs);
 

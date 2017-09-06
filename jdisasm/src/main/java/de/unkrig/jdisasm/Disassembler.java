@@ -399,8 +399,12 @@ class Disassembler {
         this.signatureParser = new SignatureParser(new Options() {
 
             @Override public String
-            beautifyPackageSpecifier(String packageSpecifier) {
-                return tcpn.equals(packageSpecifier) || "java.lang.".equals(packageSpecifier) ? "" : packageSpecifier;
+            beautifyPackageNamePrefix(String packageNamePrefix) {
+                return (
+                    tcpn.equals(packageNamePrefix) || "java.lang.".equals(packageNamePrefix)
+                    ? ""
+                    : packageNamePrefix
+                );
             }
         });
 
