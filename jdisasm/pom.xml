@@ -18,7 +18,13 @@
 		<dependency>
 			<groupId>de.unkrig.commons</groupId>
 			<artifactId>commons-nullanalysis</artifactId>
-			<version>1.2.7</version>
+			<version>1.2.11</version>
+		</dependency>
+		<dependency>
+			<groupId>de.unkrig.commons</groupId>
+			<artifactId>commons-junit4</artifactId>
+			<version>1.2.12-SNAPSHOT</version>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 
