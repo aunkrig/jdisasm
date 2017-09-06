@@ -732,18 +732,18 @@ class BytecodeDisassembler {
                         switch (subopcode) {
 
                         // SUPPRESS CHECKSTYLE LineLength:12
-                        case 21:  this.da("wide iload", BytecodeDisassembler.LOCALVARIABLEINDEX2);                                   break;
-                        case 23:  this.da("fload",      BytecodeDisassembler.LOCALVARIABLEINDEX2);                                   break;
-                        case 25:  this.da("aload",      BytecodeDisassembler.LOCALVARIABLEINDEX2);                                   break;
-                        case 22:  this.da("lload",      BytecodeDisassembler.LOCALVARIABLEINDEX2);                                   break;
-                        case 24:  this.da("dload",      BytecodeDisassembler.LOCALVARIABLEINDEX2);                                   break;
-                        case 54:  this.da("istore",     BytecodeDisassembler.LOCALVARIABLEINDEX2);                                   break;
-                        case 56:  this.da("fstore",     BytecodeDisassembler.LOCALVARIABLEINDEX2);                                   break;
-                        case 58:  this.da("astore",     BytecodeDisassembler.LOCALVARIABLEINDEX2);                                   break;
-                        case 55:  this.da("lstore",     BytecodeDisassembler.LOCALVARIABLEINDEX2);                                   break;
-                        case 57:  this.da("dstore",     BytecodeDisassembler.LOCALVARIABLEINDEX2);                                   break;
-                        case 169: this.da("ret",        BytecodeDisassembler.LOCALVARIABLEINDEX2);                                   break;
-                        case 132: this.da("iinc",       BytecodeDisassembler.LOCALVARIABLEINDEX2, BytecodeDisassembler.SIGNEDSHORT); break;
+                        case 21:  this.da("wide iload",  BytecodeDisassembler.LOCALVARIABLEINDEX2);                                   break;
+                        case 23:  this.da("wide fload",  BytecodeDisassembler.LOCALVARIABLEINDEX2);                                   break;
+                        case 25:  this.da("wide aload",  BytecodeDisassembler.LOCALVARIABLEINDEX2);                                   break;
+                        case 22:  this.da("wide lload",  BytecodeDisassembler.LOCALVARIABLEINDEX2);                                   break;
+                        case 24:  this.da("wide dload",  BytecodeDisassembler.LOCALVARIABLEINDEX2);                                   break;
+                        case 54:  this.da("wide istore", BytecodeDisassembler.LOCALVARIABLEINDEX2);                                   break;
+                        case 56:  this.da("wide fstore", BytecodeDisassembler.LOCALVARIABLEINDEX2);                                   break;
+                        case 58:  this.da("wide astore", BytecodeDisassembler.LOCALVARIABLEINDEX2);                                   break;
+                        case 55:  this.da("wide lstore", BytecodeDisassembler.LOCALVARIABLEINDEX2);                                   break;
+                        case 57:  this.da("wide dstore", BytecodeDisassembler.LOCALVARIABLEINDEX2);                                   break;
+                        case 169: this.da("wide ret",    BytecodeDisassembler.LOCALVARIABLEINDEX2);                                   break;
+                        case 132: this.da("wide iinc",   BytecodeDisassembler.LOCALVARIABLEINDEX2, BytecodeDisassembler.SIGNEDSHORT); break;
 
                         default:
                             this.lines.put(
