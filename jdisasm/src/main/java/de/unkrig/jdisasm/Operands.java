@@ -39,8 +39,10 @@ import de.unkrig.jdisasm.ConstantPool.ConstantInterfaceMethodrefOrMethodrefInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantInvokeDynamicInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantMethodrefInfo;
 
-public
+public final
 class Operands {
+
+    private Operands() {}
 
     static final Operand INTFLOATCLASSSTRING1 = new Operand() {
 
@@ -52,7 +54,7 @@ class Operands {
                 ConstantClassOrFloatOrIntegerOrStringInfo.class
             ).toString();
             if (Character.isJavaIdentifierStart(t.charAt(0))) t = bd.d.beautify(t);
-            if (bd.verbose) t += " (" + (0xffff & index) + ")";
+            if (bd.d.verbose) t += " (" + (0xffff & index) + ")";
             return t;
         }
     };
@@ -67,7 +69,7 @@ class Operands {
                 ConstantClassOrFloatOrIntegerOrStringInfo.class
             ).toString();
             if (Character.isJavaIdentifierStart(t.charAt(0))) t = bd.d.beautify(t);
-            if (bd.verbose) t += " (" + (0xffff & index) + ")";
+            if (bd.d.verbose) t += " (" + (0xffff & index) + ")";
             return t;
         }
     };
@@ -81,7 +83,7 @@ class Operands {
                 index,
                 ConstantDoubleOrLongOrStringInfo.class
             ).toString();
-            if (bd.verbose) t += " (" + (0xffff & index) + ")";
+            if (bd.d.verbose) t += " (" + (0xffff & index) + ")";
             return t;
         }
     };
@@ -104,7 +106,7 @@ class Operands {
                 + '.'
                 + fr.nameAndType.name.bytes
             );
-            if (bd.verbose) t += " (" + (0xffff & index) + ")";
+            if (bd.d.verbose) t += " (" + (0xffff & index) + ")";
             return t;
         }
     };
@@ -127,7 +129,7 @@ class Operands {
                     mr.nameAndType.name.bytes
                 )
             );
-            if (bd.verbose) t += " (" + (0xffff & index) + ")";
+            if (bd.d.verbose) t += " (" + (0xffff & index) + ")";
             return t;
         }
     };
@@ -152,7 +154,7 @@ class Operands {
                 .decodeMethodDescriptor(imr.nameAndType.descriptor.bytes)
                 .toString(imr.clasS.name, imr.nameAndType.name.bytes)
             );
-            if (bd.verbose) t += " (" + (0xffff & index) + ")";
+            if (bd.d.verbose) t += " (" + (0xffff & index) + ")";
             return t;
         }
     };
@@ -176,7 +178,7 @@ class Operands {
                 .decodeMethodDescriptor(imromr.nameAndType.descriptor.bytes)
                 .toString(imromr.clasS.name, imromr.nameAndType.name.bytes)
             );
-            if (bd.verbose) t += " (" + (0xffff & index) + ")";
+            if (bd.d.verbose) t += " (" + (0xffff & index) + ")";
             return t;
         }
     };
@@ -198,7 +200,7 @@ class Operands {
                 ? bd.d.decodeFieldDescriptor(name).toString()
                 : name.replace('/', '.')
             );
-            if (bd.verbose) t += " (" + (0xffff & index) + ")";
+            if (bd.d.verbose) t += " (" + (0xffff & index) + ")";
             return t;
         }
     };
@@ -281,6 +283,14 @@ class Operands {
         }
     };
 
+    static final Operand SIGNEDSHORT = new Operand() {
+
+        @Override public String
+        disassemble(BytecodeDisassembler bd) throws IOException {
+            return Integer.toString(bd.dis.readShort());
+        }
+    };
+
     static final Operand ATYPE = new Operand() {
 
         @Override public String
@@ -299,14 +309,6 @@ class Operands {
                 b == 11 ? "LONG"    :
                 Integer.toString(0xff & b)
             );
-        }
-    };
-
-    static final Operand SIGNEDSHORT = new Operand() {
-
-        @Override public String
-        disassemble(BytecodeDisassembler bd) throws IOException {
-            return Integer.toString(bd.dis.readShort());
         }
     };
 

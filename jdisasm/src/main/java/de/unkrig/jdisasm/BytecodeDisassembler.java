@@ -77,9 +77,6 @@ class BytecodeDisassembler {
     @Nullable private final LineNumberTableAttribute lineNumberTableAttribute;
     private final Map<Integer, String>               sourceLines;
     final Method                                     method;
-    private final boolean                            symbolicLabels;
-    final boolean                                    verbose;
-    private final boolean                            hideLines;
     final Disassembler                               d;
 
     int                                                     instructionOffset;
@@ -93,9 +90,6 @@ class BytecodeDisassembler {
         @Nullable LineNumberTableAttribute lineNumberTableAttribute,
         Map<Integer, String>               sourceLines,
         Method                             method,
-        boolean                            symbolicLabels,
-        boolean                            verbose,
-        boolean                            hideLines,
         Disassembler                       d
     ) {
         this.cis                      = new CountingInputStream(is);
@@ -104,9 +98,6 @@ class BytecodeDisassembler {
         this.lineNumberTableAttribute = lineNumberTableAttribute;
         this.sourceLines              = sourceLines;
         this.method                   = method;
-        this.symbolicLabels           = symbolicLabels;
-        this.verbose                  = verbose;
-        this.hideLines                = hideLines;
         this.d                        = d;
     }
 
@@ -479,7 +470,7 @@ class BytecodeDisassembler {
                 if (lineNumber == -1) break PRINT_SOURCE_LINE;
 
                 String sourceLine = this.sourceLines.get(lineNumber);
-                if (sourceLine == null && this.hideLines) break PRINT_SOURCE_LINE;
+                if (sourceLine == null && this.d.hideLines) break PRINT_SOURCE_LINE;
 
                 StringBuilder sb = new StringBuilder(indentation);
                 if (sourceLine == null) {
@@ -491,7 +482,7 @@ class BytecodeDisassembler {
                         Arrays.fill(spc, ' ');
                         sb.append(spc);
                     }
-                    if (!this.hideLines) {
+                    if (!this.d.hideLines) {
                         sb.append("Line ").append(lineNumber).append(": ");
                     }
                     sb.append(sourceLine);
@@ -542,7 +533,7 @@ class BytecodeDisassembler {
         String label = this.branchTargets.get(offset);
 
         if (label == null) {
-            label = this.symbolicLabels ? "L" + (1 + this.branchTargets.size()) : "#" + offset;
+            label = this.d.symbolicLabels ? "L" + (1 + this.branchTargets.size()) : "#" + offset;
             this.branchTargets.put(offset, label);
         }
 

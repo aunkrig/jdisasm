@@ -143,9 +143,9 @@ class Disassembler {
      */
     @Nullable private File sourceDirectory;
 
-    private boolean hideLines;
+    boolean         hideLines;
     private boolean hideVars;
-    private boolean symbolicLabels;
+    boolean         symbolicLabels;
 
     /**
      * "" for the default package; with a trailing period otherwise.
@@ -735,9 +735,6 @@ class Disassembler {
                             ca.lineNumberTableAttribute,
                             sourceLines,
                             method,
-                            this.symbolicLabels,
-                            this.verbose,
-                            this.hideLines,
                             this
                         ).disassembleBytecode(this.pw);
                     } catch (IOException ignored) {

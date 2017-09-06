@@ -40,7 +40,7 @@ class WideLocals {
         return l1;
     }
 
-    public int
+    @SuppressWarnings("unused") public int
     methodWithManyLocals(int p) {
 
         int l000, l001, l002, l003, l004, l005, l006, l007, l008, l009;
