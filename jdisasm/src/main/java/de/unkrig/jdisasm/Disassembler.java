@@ -416,7 +416,7 @@ class Disassembler {
         EnclosingMethodAttribute ema = cf.enclosingMethodAttribute;
         if (ema != null) {
 
-        	ConstantNameAndTypeInfo m          = ema.method;
+            ConstantNameAndTypeInfo m          = ema.method;
             String                  methodName = m == null ? "[initializer]" : m.name.bytes;
 
             this.println();
