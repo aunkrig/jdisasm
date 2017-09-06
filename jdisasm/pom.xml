@@ -9,9 +9,11 @@
 	<groupId>de.unkrig.jdisasm</groupId>
 	<artifactId>jdisasm</artifactId>
 	<version>1.0.2-SNAPSHOT</version>
+
 	<properties>
 		<maven.compiler.source>1.6</maven.compiler.source>
 		<maven.compiler.target>1.6</maven.compiler.target>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 
 	<dependencies>
