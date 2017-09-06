@@ -421,8 +421,7 @@ class BytecodeDisassembler {
                         ExceptionTableEntry ete = it2.next();
                         ConstantClassInfo   ct  = ete.catchType;
                         pw.print(
-                            (ct == null ? "[all exceptions]" : this.d.beautify(ct.name))
-                            + " => "
+                            (ct == null ? "[all exceptions] => " : ct + " => ")
                             + this.branchTarget(ete.handlerPc)
                         );
                         if (!it2.hasNext()) break;

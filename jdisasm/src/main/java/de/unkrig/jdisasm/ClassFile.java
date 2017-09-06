@@ -94,6 +94,11 @@ class ClassFile {
     public String thisClassPackageNamePrefix;
 
     /**
+     * The simple (unqualified) name of this type.
+     */
+    public String simpleThisClassName;
+
+    /**
      * The fully qualified (dot-separated) name of the superclass of this type; "java.lang.Object" iff this type is an
      * interface; {@code null} iff this type is {@link Object}.
      */
@@ -174,6 +179,8 @@ class ClassFile {
      * All attributes of this class.
      */
     public final List<Attribute> attributes = new ArrayList<Attribute>();
+
+    private SignatureParser signatureParser = new SignatureParser();
 
     /**
      * Abstraction for a set of "access flags".
@@ -276,24 +283,28 @@ class ClassFile {
         this.majorVersion = dis.readShort();
 
         // Load constant pool.
-        this.constantPool = new ConstantPool(dis);
+        this.constantPool = new ConstantPool(dis, this.signatureParser);
 
         // Access flags.
         this.accessFlags = new AccessFlags(dis.readShort());
 
         // Class name.
-        this.thisClassName              = this.constantPool.get(dis.readShort(), ConstantClassInfo.class).name;
-        this.thisClassPackageNamePrefix = this.thisClassName.substring(0, this.thisClassName.lastIndexOf('.') + 1);
+        this.thisClassName = this.constantPool.get(dis.readShort(), ConstantClassInfo.class).toString();
+        {
+            int idx = this.thisClassName.lastIndexOf('.') + 1;
+            this.thisClassPackageNamePrefix = this.thisClassName.substring(0, idx);
+            this.simpleThisClassName        = this.thisClassName.substring(idx);
+        }
 
         // Superclass.
         {
             ConstantClassInfo superclassCci = this.constantPool.getOptional(dis.readShort(), ConstantClassInfo.class);
-            this.superClassName = superclassCci == null ? null : superclassCci.name;
+            this.superClassName = superclassCci == null ? null : superclassCci.toString();
         }
 
         // Implemented interfaces.
         for (short i = dis.readShort(); i > 0; --i) {
-            this.interfaceNames.add(this.constantPool.get(dis.readShort(), ConstantClassInfo.class).name);
+            this.interfaceNames.add(this.constantPool.get(dis.readShort(), ConstantClassInfo.class).toString());
         }
 
         // Fields.
@@ -390,6 +401,16 @@ class ClassFile {
                 ClassFile.this.attributes.add(a);
             }
         });
+    }
+
+    /**
+     * Sets a custom {@link SignatureParser}; that influences how the various descriptors and signatures in the class
+     * file are parsed and converted to human-readable strings by {@link Object#toString()}.
+     */
+    public void
+    setSignatureParser(SignatureParser signatureParser) {
+        this.signatureParser = signatureParser;
+        this.constantPool.setSignatureParser(signatureParser);
     }
 
     /**
@@ -933,7 +954,7 @@ class ClassFile {
      * Representation of the <a href="http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.7.16">{@code
      * RuntimeVisibleAnnotations} attribute</a>.
      */
-    public static
+    public
     class RuntimeVisibleAnnotationsAttribute implements Attribute {
 
         /**
@@ -958,7 +979,7 @@ class ClassFile {
     /**
      * Representation of the {@code RuntimeInvisibleAnnotations} attribute.
      */
-    public static
+    public
     class RuntimeInvisibleAnnotationsAttribute extends RuntimeVisibleAnnotationsAttribute {
 
         public
@@ -972,7 +993,7 @@ class ClassFile {
     /**
      * Helper class for {@link RuntimeVisibleParameterAnnotationsAttribute}.
      */
-    public static
+    public
     class ParameterAnnotation {
 
         /**
@@ -993,7 +1014,7 @@ class ClassFile {
      * Representation of the <a href="http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.7.18">{@code
      * RuntimeVisibleParameterAnnotations} attribute</a>.
      */
-    public static
+    public
     class RuntimeVisibleParameterAnnotationsAttribute implements Attribute {
 
         /**
@@ -1016,7 +1037,7 @@ class ClassFile {
     /**
      * Representation of the {@code RuntimeInvisibleParameterAnnotations} attribute.
      */
-    public static
+    public
     class RuntimeInvisibleParameterAnnotationsAttribute
     extends RuntimeVisibleParameterAnnotationsAttribute {
 
@@ -1032,7 +1053,7 @@ class ClassFile {
      * Representation of the <a href="http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.7.20">{@code
      * AnnotationDefault} attribute</a>.
      */
-    public static
+    public
     class AnnotationDefaultAttribute implements Attribute {
 
         /**
@@ -1043,7 +1064,7 @@ class ClassFile {
         public ElementValue defaultValue;
 
         AnnotationDefaultAttribute(DataInputStream dis, ClassFile cf) throws IOException {
-            this.defaultValue = ClassFile.newElementValue(dis, cf);
+            this.defaultValue = ClassFile.this.newElementValue(dis, cf);
         }
 
         @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this); }
@@ -1110,7 +1131,7 @@ class ClassFile {
      *   annotation</a> on a program element.
      * </p>
      */
-    public static
+    public
     class Annotation {
 
         /**
@@ -1121,7 +1142,7 @@ class ClassFile {
          *   pair</a> in the annotation represented by this {@link Annotation}.
          * </p>
          */
-        public static
+        public
         class ElementValuePair {
 
             /**
@@ -1142,7 +1163,7 @@ class ClassFile {
             public
             ElementValuePair(DataInputStream dis, ClassFile cf) throws IOException {
                 this.elementName  = cf.constantPool.get(dis.readShort(), ConstantUtf8Info.class).bytes;
-                this.elementValue = ClassFile.newElementValue(dis, cf);
+                this.elementValue = ClassFile.this.newElementValue(dis, cf);
             }
 
             @Override public String
@@ -1170,7 +1191,7 @@ class ClassFile {
         Annotation(DataInputStream dis, ClassFile cf) throws IOException {
             short typeIndex = dis.readShort();
             try {
-                this.typeName = SignatureParser.decodeFieldDescriptor(
+                this.typeName = ClassFile.this.signatureParser.decodeFieldDescriptor(
                     cf.constantPool.get(typeIndex, ConstantUtf8Info.class).bytes
                 ).toString();
             } catch (SignatureException e) {
@@ -1204,7 +1225,7 @@ class ClassFile {
     /**
      * Reads one {@link ElementValue} from the given {@link DataInputStream}.
      */
-    static ElementValue
+    ElementValue
     newElementValue(DataInputStream dis, ClassFile cf) throws IOException {
         final byte tag = dis.readByte();
         if ("BCDFIJSZ".indexOf(tag) != -1) {
@@ -1224,7 +1245,7 @@ class ClassFile {
             String typeName  = cf.constantPool.get(dis.readShort(), ConstantUtf8Info.class).bytes;
             String constName = cf.constantPool.get(dis.readShort(), ConstantUtf8Info.class).bytes;
             try {
-                final String s = SignatureParser.decodeFieldDescriptor(typeName) + "." + constName;
+                final String s = this.signatureParser.decodeFieldDescriptor(typeName) + "." + constName;
                 return new ElementValue() { @Override public String toString() { return s; } };
             } catch (SignatureException se) {
                 throw new ClassFileFormatException("Decoding enum constant element value: " + se.getMessage(), se);
@@ -1233,7 +1254,7 @@ class ClassFile {
         if (tag == 'c') {
             final String classInfo = cf.constantPool.get(dis.readShort(), ConstantUtf8Info.class).bytes;
             try {
-                final String s = SignatureParser.decodeReturnType(classInfo) + ".class";
+                final String s = this.signatureParser.decodeReturnType(classInfo) + ".class";
                 return new ElementValue() { @Override public String toString() { return s; } };
             } catch (SignatureException se) {
                 throw new ClassFileFormatException("Decoding class element value: " + se.getMessage(), se);
@@ -1246,7 +1267,7 @@ class ClassFile {
         if (tag == '[') {
             final List<ElementValue> values = new ArrayList<ElementValue>();
             for (int i = dis.readShort(); i > 0; --i) {
-                values.add(ClassFile.newElementValue(dis, cf));
+                values.add(this.newElementValue(dis, cf));
             }
             return new ElementValue() {
 

@@ -53,7 +53,6 @@ class Operands {
                 index,
                 ConstantClassOrFloatOrIntegerOrStringInfo.class
             ).toString();
-            if (Character.isJavaIdentifierStart(t.charAt(0))) t = bd.d.beautify(t);
             if (bd.d.verbose) t += " (" + (0xffff & index) + ")";
             return t;
         }
@@ -68,7 +67,6 @@ class Operands {
                 index,
                 ConstantClassOrFloatOrIntegerOrStringInfo.class
             ).toString();
-            if (Character.isJavaIdentifierStart(t.charAt(0))) t = bd.d.beautify(t);
             if (bd.d.verbose) t += " (" + (0xffff & index) + ")";
             return t;
         }
@@ -100,9 +98,9 @@ class Operands {
             );
 
             String t = (
-                bd.d.beautify(bd.d.decodeFieldDescriptor(fr.nameAndType.descriptor.bytes).toString())
-                + ' '
-                + bd.d.beautify(fr.clasS.name)
+                bd.d.decodeFieldDescriptor(fr.nameAndType.descriptor.bytes)
+                + " "
+                + fr.clasS
                 + '.'
                 + fr.nameAndType.name.bytes
             );
@@ -123,11 +121,9 @@ class Operands {
                 ConstantMethodrefInfo.class
             );
 
-            String t = bd.d.beautify(
-                bd.d.decodeMethodDescriptor(mr.nameAndType.descriptor.bytes).toString(
-                    mr.clasS.name,
-                    mr.nameAndType.name.bytes
-                )
+            String t = bd.d.decodeMethodDescriptor(mr.nameAndType.descriptor.bytes).toString(
+                mr.clasS.toString(),
+                mr.nameAndType.name.bytes
             );
             if (bd.d.verbose) t += " (" + (0xffff & index) + ")";
             return t;
@@ -148,11 +144,9 @@ class Operands {
                 ConstantInterfaceMethodrefInfo.class
             );
 
-            String t = bd.d.beautify(
-                bd
-                .d
-                .decodeMethodDescriptor(imr.nameAndType.descriptor.bytes)
-                .toString(imr.clasS.name, imr.nameAndType.name.bytes)
+            String t = bd.d.decodeMethodDescriptor(imr.nameAndType.descriptor.bytes).toString(
+        		imr.clasS.toString(),
+        		imr.nameAndType.name.bytes
             );
             if (bd.d.verbose) t += " (" + (0xffff & index) + ")";
             return t;
@@ -172,11 +166,9 @@ class Operands {
                 ConstantInterfaceMethodrefOrMethodrefInfo.class
             );
 
-            String t = bd.d.beautify(
-                bd
-                .d
-                .decodeMethodDescriptor(imromr.nameAndType.descriptor.bytes)
-                .toString(imromr.clasS.name, imromr.nameAndType.name.bytes)
+            String t = bd.d.decodeMethodDescriptor(imromr.nameAndType.descriptor.bytes).toString(
+        		imromr.clasS.toString(),
+        		imromr.nameAndType.name.bytes
             );
             if (bd.d.verbose) t += " (" + (0xffff & index) + ")";
             return t;
@@ -190,17 +182,10 @@ class Operands {
 
             short index = bd.dis.readShort();
 
-            String name = bd.method.getClassFile().constantPool.get(
-                index,
-                ConstantClassInfo.class
-            ).name;
+            String t = bd.method.getClassFile().constantPool.get(index, ConstantClassInfo.class).toString();
 
-            String t = bd.d.beautify(
-                name.startsWith("[")
-                ? bd.d.decodeFieldDescriptor(name).toString()
-                : name.replace('/', '.')
-            );
             if (bd.d.verbose) t += " (" + (0xffff & index) + ")";
+
             return t;
         }
     };
@@ -213,7 +198,7 @@ class Operands {
             short index = (short) (0xff & bd.dis.readByte());
 
             // For an initial assignment (e.g. 'istore 7'), the local variable is only visible AFTER this instruction.
-            return bd.d.beautify(bd.d.getLocalVariable(index, bd.instructionOffset + 2, bd.method).toString());
+            return bd.d.getLocalVariable(index, bd.instructionOffset + 2, bd.method).toString();
         }
     };
 
@@ -226,7 +211,7 @@ class Operands {
 
             // For an initial assignment (e.g. 'wide istore 300'), the local variable is only visible AFTER this
             // instruction.
-            return bd.d.beautify(bd.d.getLocalVariable(index, bd.instructionOffset + 4, bd.method).toString());
+            return bd.d.getLocalVariable(index, bd.instructionOffset + 4, bd.method).toString();
         }
     };
 
@@ -236,10 +221,7 @@ class Operands {
 
             @Override public String
             disassemble(BytecodeDisassembler bd) {
-                return bd.d.beautify(
-                    bd.d.getLocalVariable((short) lvi, bd.instructionOffset + 1, bd.method)
-                    .toString()
-                );
+                return bd.d.getLocalVariable((short) lvi, bd.instructionOffset + 1, bd.method).toString();
             }
         };
     }

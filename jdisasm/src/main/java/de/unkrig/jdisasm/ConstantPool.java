@@ -49,7 +49,7 @@ class ConstantPool {
     /**
      * Representation of a CONSTANT_Class_info entry.
      */
-    public static
+    public
     class ConstantClassInfo implements ConstantClassOrFloatOrIntegerOrStringInfo {
 
         /**
@@ -61,14 +61,19 @@ class ConstantPool {
 
         @Override public String
         toString() {
-            return this.name + ".class";
+
+            try {
+                return ConstantPool.this.signatureParser.decodeClassNameOrFieldDescriptor(this.name).toString();
+            } catch (SignatureException e) {
+                return this.name;
+            }
         }
     }
 
     /**
      * Representation of a CONSTANT_Fieldref_info entry.
      */
-    public static
+    public
     class ConstantFieldrefInfo implements ConstantPoolEntry {
 
         /**
@@ -93,7 +98,7 @@ class ConstantPool {
                 return (
                     this.clasS.name
                     + "::"
-                    + SignatureParser.decodeFieldDescriptor(this.nameAndType.descriptor.toString())
+                    + ConstantPool.this.signatureParser.decodeFieldDescriptor(this.nameAndType.descriptor.toString())
                     + " "
                     + this.nameAndType.name
                 );
@@ -106,7 +111,7 @@ class ConstantPool {
     /**
      * Representation of a CONSTANT_Methodref_info entry.
      */
-    public static
+    public
     class ConstantMethodrefInfo extends ConstantInterfaceMethodrefOrMethodrefInfo {
 
         public
@@ -118,7 +123,7 @@ class ConstantPool {
     /**
      * Representation of a CONSTANT_InterfaceMethodref_info entry.
      */
-    public static
+    public
     class ConstantInterfaceMethodrefInfo extends ConstantInterfaceMethodrefOrMethodrefInfo {
 
         public
@@ -137,7 +142,7 @@ class ConstantPool {
     /**
      * Representation of a CONSTANT_Methodref_info or a CONSTANT_InterfaceMethodref_info entry.
      */
-    public static
+    public
     class ConstantInterfaceMethodrefOrMethodrefInfo implements ConstantPoolEntry {
 
         /**
@@ -162,9 +167,9 @@ class ConstantPool {
                 return (
                     this.clasS.name
                     + ":::"
-                    + SignatureParser.decodeMethodDescriptor(this.nameAndType.descriptor.toString()).toString(
-                        this.clasS.name,
-                        this.nameAndType.name.toString()
+                    + (
+                        ConstantPool.this.signatureParser.decodeMethodDescriptor(this.nameAndType.descriptor.toString())
+                        .toString(this.clasS.name, this.nameAndType.name.toString())
                     )
                 );
             } catch (SignatureException e) {
@@ -264,7 +269,7 @@ class ConstantPool {
     /**
      * Representation of a CONSTANT_NameAndType_info entry.
      */
-    public static
+    public
     class ConstantNameAndTypeInfo implements ConstantPoolEntry {
 
         /**
@@ -288,8 +293,8 @@ class ConstantPool {
             try {
                 return this.name + " : " + (
                     this.descriptor.bytes.indexOf('(') == -1
-                    ? SignatureParser.decodeFieldDescriptor(this.descriptor.bytes)
-                    : SignatureParser.decodeMethodDescriptor(this.descriptor.bytes)
+                    ? ConstantPool.this.signatureParser.decodeFieldDescriptor(this.descriptor.bytes)
+                    : ConstantPool.this.signatureParser.decodeMethodDescriptor(this.descriptor.bytes)
                 );
             } catch (SignatureException e) {
                 return this.name + " : " + this.descriptor;
@@ -349,7 +354,7 @@ class ConstantPool {
     /**
      * Representation of a CONSTANT_MethodType_info entry.
      */
-    public static
+    public
     class ConstantMethodTypeInfo implements ConstantPoolEntry {
 
         /**
@@ -365,7 +370,7 @@ class ConstantPool {
         @Override public String
         toString() {
             try {
-                return SignatureParser.decodeMethodDescriptor(this.descriptor.toString()).toString();
+                return ConstantPool.this.signatureParser.decodeMethodDescriptor(this.descriptor.toString()).toString();
             } catch (SignatureException e) {
                 return this.descriptor.toString();
             }
@@ -425,6 +430,8 @@ class ConstantPool {
     public
     interface ConstantDoubleOrLongOrStringInfo extends ConstantPoolEntry {}
 
+    private SignatureParser signatureParser;
+
     /**
      * The entries of this pool, as read from a class file by {@link #ConstantPool}.
      */
@@ -440,7 +447,10 @@ class ConstantPool {
      * @throws ArrayIndexOutOfBoundsException An index is too small or to great
      */
     public
-    ConstantPool(final DataInputStream dis) throws IOException {
+    ConstantPool(final DataInputStream dis, SignatureParser signatureParser) throws IOException {
+
+        this.signatureParser = signatureParser;
+
         final int count = 0xffff & dis.readShort();
 
         // Read the entries into a temporary data structure - this is necessary because there may be forward
@@ -709,6 +719,15 @@ class ConstantPool {
                 throw new RuntimeException("Cooking CP entry #" + i + " of " + count + ": " + re.getMessage(), re);
             }
         }
+    }
+
+    /**
+     * Sets a custom {@link SignatureParser}; that influences how the various descriptors and signatures in the class
+     * file are parsed and converted to human-readable strings by {@link Object#toString()}.
+     */
+    public void
+    setSignatureParser(SignatureParser signatureParser) {
+        this.signatureParser = signatureParser;
     }
 
     /**
