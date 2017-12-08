@@ -39,9 +39,9 @@ public
 enum OperandKind {
 
     // SUPPRESS CHECKSTYLE Javadoc|LineLength:31
-    INTFLOATCLASSSTRING1           { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitIntFloatClassString1(this);           } },
-    INTFLOATCLASSSTRING2           { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitIntFloatClassString2(this);           } },
-    LONGDOUBLE2                    { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitLongDouble2(this);                    } },
+    CLASSFLOATINTSTRING1           { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitClassFloatIntString1(this);           } },
+    CLASSFLOATINTSTRING2           { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitClassFloatIntString2(this);           } },
+    DOUBLELONG2                    { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitDoubleLong2(this);                    } },
 
     FIELDREF2                      { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitFieldref2(this);                      } },
 
@@ -83,9 +83,9 @@ enum OperandKind {
     interface Visitor<R, EX extends Throwable> {
 
         // SUPPRESS CHECKSTYLE Javadoc:28
-        R visitIntFloatClassString1(OperandKind operandType)                  throws EX;
-        R visitIntFloatClassString2(OperandKind operandType)                  throws EX;
-        R visitLongDouble2(OperandKind operandType)                           throws EX;
+        R visitClassFloatIntString1(OperandKind operandType)                  throws EX;
+        R visitClassFloatIntString2(OperandKind operandType)                  throws EX;
+        R visitDoubleLong2(OperandKind operandType)                           throws EX;
 
         R visitFieldref2(OperandKind operandType)                             throws EX;
 

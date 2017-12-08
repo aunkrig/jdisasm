@@ -67,29 +67,21 @@ import de.unkrig.jdisasm.ConstantPool.ConstantMethodrefInfo;
 public
 class BytecodeDisassembler {
 
-    /**
-     * Static description of an operand of a Java byte code instruction.
-     */
-    interface Operand {
-
-        /**
-         * @return This operand disassembled
-         */
-        String
-        disassemble(BytecodeDisassembler bd) throws IOException;
-    }
-
     private final CountingInputStream                cis;
-    final DataInputStream                            dis;
+    private final DataInputStream                    dis;
     private final List<ExceptionTableEntry>          exceptionTable;
     @Nullable private final LineNumberTableAttribute lineNumberTableAttribute;
     private final Map<Integer, String>               sourceLines;
-    final Method                                     method;
-    final Disassembler                               d;
+    private final Method                             method;
+    private final Disassembler                       d;
 
-    int                                                     instructionOffset;
+    private int                                             instructionOffset;
     private final Map<Integer /*offset*/, String /*label*/> branchTargets = new HashMap<Integer, String>();
-    private final SortedMap<Integer, String>                lines         = new TreeMap<Integer, String>();
+
+    /**
+     * Maps instruction offsets to disassembly lines.
+     */
+    private final SortedMap<Integer, String> lines = new TreeMap<Integer, String>();
 
     public
     BytecodeDisassembler(
@@ -151,248 +143,39 @@ class BytecodeDisassembler {
             }
         }
 
+        // Decodes one instruction and returns one line of disassembly. Requires "this.instructionOffset" to be set
+        // correctly. Produces "null" on end-of-input.
+        BytecodeDecoder<String, IOException> bytecodeDecoder = new BytecodeDecoder<String, IOException>() {
+
+            @Override @Nullable public String
+            decoded(String mnemonic, OperandKind... operandKinds) throws IOException {
+
+                if ("end".equals(mnemonic)) return null;
+
+                if (operandKinds.length == 0) return mnemonic;
+
+                Formatter f = new Formatter();
+                f.format("%-15s", mnemonic);
+
+                for (int i = 0; i < operandKinds.length; ++i) {
+                    f.format(" %s", operandKinds[i].accept(BytecodeDisassembler.this.readOperand));
+                }
+
+                return f.toString();
+            }
+        };
+
+        // Now decode the bytecode and fill the "this.lines" map.
         for (;;) {
+
+            // "this.readOperands" needs this:
             this.instructionOffset = (int) this.cis.getCount();
 
-            int opcode = this.dis.read();
-            if (opcode == -1) break;
+            // Decode one instruction into one line of assembly.
+            String line = bytecodeDecoder.decode(this.dis);
+            if (line == null) break;
 
-            switch (opcode) {
-
-            case 50:   this.da("aaload");                                                                   break;
-            case 83:   this.da("aastore");                                                                  break;
-            case 1:    this.da("aconst_null");                                                              break;
-            case 25:   this.da("aload",           OperandKind.LOCALVARIABLEINDEX1);                         break;
-            case 42:   this.da("aload_0",         OperandKind.IMPLICITLOCALVARIABLEINDEX_0);                break;
-            case 43:   this.da("aload_1",         OperandKind.IMPLICITLOCALVARIABLEINDEX_1);                break;
-            case 44:   this.da("aload_2",         OperandKind.IMPLICITLOCALVARIABLEINDEX_2);                break;
-            case 45:   this.da("aload_3",         OperandKind.IMPLICITLOCALVARIABLEINDEX_3);                break;
-            case 189:  this.da("anewarray",       OperandKind.CLASS2);                                      break;
-            case 176:  this.da("areturn");                                                                  break;
-            case 190:  this.da("arraylength");                                                              break;
-            case 58:   this.da("astore",          OperandKind.LOCALVARIABLEINDEX1);                         break;
-            case 75:   this.da("astore_0",        OperandKind.IMPLICITLOCALVARIABLEINDEX_0);                break;
-            case 76:   this.da("astore_1",        OperandKind.IMPLICITLOCALVARIABLEINDEX_1);                break;
-            case 77:   this.da("astore_2",        OperandKind.IMPLICITLOCALVARIABLEINDEX_2);                break;
-            case 78:   this.da("astore_3",        OperandKind.IMPLICITLOCALVARIABLEINDEX_3);                break;
-            case 191:  this.da("athrow");                                                                   break;
-            case 51:   this.da("baload");                                                                   break;
-            case 84:   this.da("bastore");                                                                  break;
-            case 16:   this.da("bipush",          OperandKind.SIGNEDBYTE);                                  break;
-            case 52:   this.da("caload");                                                                   break;
-            case 85:   this.da("castore");                                                                  break;
-            case 192:  this.da("checkcast",       OperandKind.CLASS2);                                      break;
-            case 144:  this.da("d2f");                                                                      break;
-            case 142:  this.da("d2i");                                                                      break;
-            case 143:  this.da("d2l");                                                                      break;
-            case 99:   this.da("dadd");                                                                     break;
-            case 49:   this.da("daload");                                                                   break;
-            case 82:   this.da("dastore");                                                                  break;
-            case 152:  this.da("dcmpg");                                                                    break;
-            case 151:  this.da("dcmpl");                                                                    break;
-            case 14:   this.da("dconst_0");                                                                 break;
-            case 15:   this.da("dconst_1");                                                                 break;
-            case 111:  this.da("ddiv");                                                                     break;
-            case 24:   this.da("dload",           OperandKind.LOCALVARIABLEINDEX1);                         break;
-            case 38:   this.da("dload_0",         OperandKind.IMPLICITLOCALVARIABLEINDEX_0);                break;
-            case 39:   this.da("dload_1",         OperandKind.IMPLICITLOCALVARIABLEINDEX_1);                break;
-            case 40:   this.da("dload_2",         OperandKind.IMPLICITLOCALVARIABLEINDEX_2);                break;
-            case 41:   this.da("dload_3",         OperandKind.IMPLICITLOCALVARIABLEINDEX_3);                break;
-            case 107:  this.da("dmul");                                                                     break;
-            case 119:  this.da("dneg");                                                                     break;
-            case 115:  this.da("drem");                                                                     break;
-            case 175:  this.da("dreturn");                                                                  break;
-            case 57:   this.da("dstore",          OperandKind.LOCALVARIABLEINDEX1);                         break;
-            case 71:   this.da("dstore_0",        OperandKind.IMPLICITLOCALVARIABLEINDEX_0);                break;
-            case 72:   this.da("dstore_1",        OperandKind.IMPLICITLOCALVARIABLEINDEX_1);                break;
-            case 73:   this.da("dstore_1",        OperandKind.IMPLICITLOCALVARIABLEINDEX_2);                break;
-            case 74:   this.da("dstore_1",        OperandKind.IMPLICITLOCALVARIABLEINDEX_3);                break;
-            case 103:  this.da("dsub");                                                                     break;
-            case 89:   this.da("dup");                                                                      break;
-            case 90:   this.da("dup_x1");                                                                   break;
-            case 91:   this.da("dup_x2");                                                                   break;
-            case 92:   this.da("dup2");                                                                     break;
-            case 93:   this.da("dup2_x1");                                                                  break;
-            case 94:   this.da("dup2_x2");                                                                  break;
-            case 141:  this.da("f2d");                                                                      break;
-            case 139:  this.da("f2i");                                                                      break;
-            case 140:  this.da("f2l");                                                                      break;
-            case 98:   this.da("fadd");                                                                     break;
-            case 48:   this.da("faload");                                                                   break;
-            case 81:   this.da("fastore");                                                                  break;
-            case 150:  this.da("fcmpg");                                                                    break;
-            case 149:  this.da("fcmpl");                                                                    break;
-            case 11:   this.da("fconst_0");                                                                 break;
-            case 12:   this.da("fconst_1");                                                                 break;
-            case 13:   this.da("fconst_2");                                                                 break;
-            case 110:  this.da("fdiv");                                                                     break;
-            case 23:   this.da("fload",           OperandKind.LOCALVARIABLEINDEX1);                         break;
-            case 34:   this.da("fload_0",         OperandKind.IMPLICITLOCALVARIABLEINDEX_0);                break;
-            case 35:   this.da("fload_1",         OperandKind.IMPLICITLOCALVARIABLEINDEX_1);                break;
-            case 36:   this.da("fload_2",         OperandKind.IMPLICITLOCALVARIABLEINDEX_2);                break;
-            case 37:   this.da("fload_3",         OperandKind.IMPLICITLOCALVARIABLEINDEX_3);                break;
-            case 106:  this.da("fmul");                                                                     break;
-            case 118:  this.da("fneg");                                                                     break;
-            case 114:  this.da("frem");                                                                     break;
-            case 174:  this.da("freturn");                                                                  break;
-            case 56:   this.da("fstore",          OperandKind.LOCALVARIABLEINDEX1);                         break;
-            case 67:   this.da("fstore_0",        OperandKind.IMPLICITLOCALVARIABLEINDEX_0);                break;
-            case 68:   this.da("fstore_1",        OperandKind.IMPLICITLOCALVARIABLEINDEX_1);                break;
-            case 69:   this.da("fstore_2",        OperandKind.IMPLICITLOCALVARIABLEINDEX_2);                break;
-            case 70:   this.da("fstore_3",        OperandKind.IMPLICITLOCALVARIABLEINDEX_3);                break;
-            case 102:  this.da("fsub");                                                                     break;
-            case 180:  this.da("getfield",        OperandKind.FIELDREF2);                                   break;
-            case 178:  this.da("getstatic",       OperandKind.FIELDREF2);                                   break;
-            case 167:  this.da("goto",            OperandKind.BRANCHOFFSET2);                               break;
-            case 200:  this.da("goto_w",          OperandKind.BRANCHOFFSET4);                               break;
-            case 145:  this.da("i2b");                                                                      break;
-            case 146:  this.da("i2c");                                                                      break;
-            case 135:  this.da("i2d");                                                                      break;
-            case 134:  this.da("i2f");                                                                      break;
-            case 133:  this.da("i2l");                                                                      break;
-            case 147:  this.da("i2s");                                                                      break;
-            case 96:   this.da("iadd");                                                                     break;
-            case 46:   this.da("iaload");                                                                   break;
-            case 126:  this.da("iand");                                                                     break;
-            case 79:   this.da("iastore");                                                                  break;
-            case 2:    this.da("iconst_m1");                                                                break;
-            case 3:    this.da("iconst_0");                                                                 break;
-            case 4:    this.da("iconst_1");                                                                 break;
-            case 5:    this.da("iconst_2");                                                                 break;
-            case 6:    this.da("iconst_3");                                                                 break;
-            case 7:    this.da("iconst_4");                                                                 break;
-            case 8:    this.da("iconst_5");                                                                 break;
-            case 108:  this.da("idiv");                                                                     break;
-            case 165:  this.da("if_acmpeq",       OperandKind.BRANCHOFFSET2);                               break;
-            case 166:  this.da("if_acmpne",       OperandKind.BRANCHOFFSET2);                               break;
-            case 159:  this.da("if_icmpeq",       OperandKind.BRANCHOFFSET2);                               break;
-            case 160:  this.da("if_icmpne",       OperandKind.BRANCHOFFSET2);                               break;
-            case 161:  this.da("if_icmplt",       OperandKind.BRANCHOFFSET2);                               break;
-            case 162:  this.da("if_icmpge",       OperandKind.BRANCHOFFSET2);                               break;
-            case 163:  this.da("if_icmpgt",       OperandKind.BRANCHOFFSET2);                               break;
-            case 164:  this.da("if_icmple",       OperandKind.BRANCHOFFSET2);                               break;
-            case 153:  this.da("ifeq",            OperandKind.BRANCHOFFSET2);                               break;
-            case 154:  this.da("ifne",            OperandKind.BRANCHOFFSET2);                               break;
-            case 155:  this.da("iflt",            OperandKind.BRANCHOFFSET2);                               break;
-            case 156:  this.da("ifge",            OperandKind.BRANCHOFFSET2);                               break;
-            case 157:  this.da("ifgt",            OperandKind.BRANCHOFFSET2);                               break;
-            case 158:  this.da("ifle",            OperandKind.BRANCHOFFSET2);                               break;
-            case 199:  this.da("ifnonnull",       OperandKind.BRANCHOFFSET2);                               break;
-            case 198:  this.da("ifnull",          OperandKind.BRANCHOFFSET2);                               break;
-            case 132:  this.da("iinc",            OperandKind.LOCALVARIABLEINDEX1, OperandKind.SIGNEDBYTE); break;
-            case 21:   this.da("iload",           OperandKind.LOCALVARIABLEINDEX1);                         break;
-            case 26:   this.da("iload_0",         OperandKind.IMPLICITLOCALVARIABLEINDEX_0);                break;
-            case 27:   this.da("iload_1",         OperandKind.IMPLICITLOCALVARIABLEINDEX_1);                break;
-            case 28:   this.da("iload_2",         OperandKind.IMPLICITLOCALVARIABLEINDEX_2);                break;
-            case 29:   this.da("iload_3",         OperandKind.IMPLICITLOCALVARIABLEINDEX_3);                break;
-            case 104:  this.da("imul");                                                                     break;
-            case 116:  this.da("ineg");                                                                     break;
-            case 193:  this.da("instanceof",      OperandKind.CLASS2);                                      break;
-            case 186:  this.da("invokedynamic",   OperandKind.DYNAMICCALLSITE);                             break;
-            case 185:  this.da("invokeinterface", OperandKind.INTERFACEMETHODREF2);                         break;
-            case 183:  this.da("invokespecial",   OperandKind.INTERFACEMETHODREFORMETHODREF2);              break;
-            case 184:  this.da("invokestatic",    OperandKind.INTERFACEMETHODREFORMETHODREF2);              break;
-            case 182:  this.da("invokevirtual",   OperandKind.METHODREF2);                                  break;
-            case 128:  this.da("ior");                                                                      break;
-            case 112:  this.da("irem");                                                                     break;
-            case 172:  this.da("ireturn");                                                                  break;
-            case 120:  this.da("ishl");                                                                     break;
-            case 122:  this.da("ishr");                                                                     break;
-            case 54:   this.da("istore",          OperandKind.LOCALVARIABLEINDEX1);                         break;
-            case 59:   this.da("istore_0",        OperandKind.IMPLICITLOCALVARIABLEINDEX_0);                break;
-            case 60:   this.da("istore_1",        OperandKind.IMPLICITLOCALVARIABLEINDEX_1);                break;
-            case 61:   this.da("istore_2",        OperandKind.IMPLICITLOCALVARIABLEINDEX_2);                break;
-            case 62:   this.da("istore_3",        OperandKind.IMPLICITLOCALVARIABLEINDEX_3);                break;
-            case 100:  this.da("isub");                                                                     break;
-            case 124:  this.da("iushr");                                                                    break;
-            case 130:  this.da("ixor");                                                                     break;
-            case 168:  this.da("jsr",             OperandKind.BRANCHOFFSET2);                               break;
-            case 201:  this.da("jsr_w",           OperandKind.BRANCHOFFSET4);                               break;
-            case 138:  this.da("l2d");                                                                      break;
-            case 137:  this.da("l2f");                                                                      break;
-            case 136:  this.da("l2i");                                                                      break;
-            case 97:   this.da("ladd");                                                                     break;
-            case 47:   this.da("laload");                                                                   break;
-            case 127:  this.da("land");                                                                     break;
-            case 80:   this.da("lastore");                                                                  break;
-            case 148:  this.da("lcmp");                                                                     break;
-            case 9:    this.da("lconst_0");                                                                 break;
-            case 10:   this.da("lconst_1");                                                                 break;
-            case 18:   this.da("ldc",             OperandKind.INTFLOATCLASSSTRING1);                        break;
-            case 19:   this.da("ldc_w",           OperandKind.INTFLOATCLASSSTRING2);                        break;
-            case 20:   this.da("ldc2_w",          OperandKind.LONGDOUBLE2);                                 break;
-            case 109:  this.da("ldiv");                                                                     break;
-            case 22:   this.da("lload",           OperandKind.LOCALVARIABLEINDEX1);                         break;
-            case 30:   this.da("lload_0",         OperandKind.IMPLICITLOCALVARIABLEINDEX_0);                break;
-            case 31:   this.da("lload_1",         OperandKind.IMPLICITLOCALVARIABLEINDEX_1);                break;
-            case 32:   this.da("lload_2",         OperandKind.IMPLICITLOCALVARIABLEINDEX_2);                break;
-            case 33:   this.da("lload_3",         OperandKind.IMPLICITLOCALVARIABLEINDEX_3);                break;
-            case 105:  this.da("lmul");                                                                     break;
-            case 117:  this.da("lneg");                                                                     break;
-            case 171:  this.da("lookupswitch",    OperandKind.LOOKUPSWITCH);                                break;
-            case 129:  this.da("lor");                                                                      break;
-            case 113:  this.da("lrem");                                                                     break;
-            case 173:  this.da("lreturn");                                                                  break;
-            case 121:  this.da("lshl");                                                                     break;
-            case 123:  this.da("lshr");                                                                     break;
-            case 55:   this.da("lstore",          OperandKind.LOCALVARIABLEINDEX1);                         break;
-            case 63:   this.da("lstore_0",        OperandKind.IMPLICITLOCALVARIABLEINDEX_0);                break;
-            case 64:   this.da("lstore_1",        OperandKind.IMPLICITLOCALVARIABLEINDEX_1);                break;
-            case 65:   this.da("lstore_2",        OperandKind.IMPLICITLOCALVARIABLEINDEX_2);                break;
-            case 66:   this.da("lstore_3",        OperandKind.IMPLICITLOCALVARIABLEINDEX_3);                break;
-            case 101:  this.da("lsub");                                                                     break;
-            case 125:  this.da("lushr");                                                                    break;
-            case 131:  this.da("lxor");                                                                     break;
-            case 194:  this.da("monitorenter");                                                             break;
-            case 195:  this.da("monitorexit");                                                              break;
-            case 197:  this.da("multianewarray",  OperandKind.CLASS2, OperandKind.UNSIGNEDBYTE);            break;
-            case 187:  this.da("new",             OperandKind.CLASS2);                                      break;
-            case 188:  this.da("newarray",        OperandKind.ATYPE);                                       break;
-            case 0:    this.da("nop");                                                                      break;
-            case 87:   this.da("pop");                                                                      break;
-            case 88:   this.da("pop2");                                                                     break;
-            case 181:  this.da("putfield",        OperandKind.FIELDREF2);                                   break;
-            case 179:  this.da("putstatic",       OperandKind.FIELDREF2);                                   break;
-            case 169:  this.da("ret",             OperandKind.LOCALVARIABLEINDEX1);                         break;
-            case 177:  this.da("return");                                                                   break;
-            case 53:   this.da("saload");                                                                   break;
-            case 86:   this.da("sastore");                                                                  break;
-            case 17:   this.da("sipush",          OperandKind.SIGNEDSHORT);                                 break;
-            case 95:   this.da("swap");                                                                     break;
-            case 170:  this.da("tableswitch",     OperandKind.TABLESWITCH);                                 break;
-
-            case 196:
-                {
-                    int subopcode = 0xff & this.dis.readByte();
-                    switch (subopcode) {
-
-                    case 21:  this.da("wide iload",  OperandKind.LOCALVARIABLEINDEX2);                          break;
-                    case 23:  this.da("wide fload",  OperandKind.LOCALVARIABLEINDEX2);                          break;
-                    case 25:  this.da("wide aload",  OperandKind.LOCALVARIABLEINDEX2);                          break;
-                    case 22:  this.da("wide lload",  OperandKind.LOCALVARIABLEINDEX2);                          break;
-                    case 24:  this.da("wide dload",  OperandKind.LOCALVARIABLEINDEX2);                          break;
-                    case 54:  this.da("wide istore", OperandKind.LOCALVARIABLEINDEX2);                          break;
-                    case 56:  this.da("wide fstore", OperandKind.LOCALVARIABLEINDEX2);                          break;
-                    case 58:  this.da("wide astore", OperandKind.LOCALVARIABLEINDEX2);                          break;
-                    case 55:  this.da("wide lstore", OperandKind.LOCALVARIABLEINDEX2);                          break;
-                    case 57:  this.da("wide dstore", OperandKind.LOCALVARIABLEINDEX2);                          break;
-                    case 169: this.da("wide ret",    OperandKind.LOCALVARIABLEINDEX2);                          break;
-                    case 132: this.da("wide iinc",   OperandKind.LOCALVARIABLEINDEX2, OperandKind.SIGNEDSHORT); break;
-
-                    default:
-                        this.lines.put(
-                            this.instructionOffset,
-                            "Invalid opcode " + subopcode + " after opcode WIDE"
-                        );
-                        break;
-                    }
-                }
-                break;
-
-            default:
-                this.lines.put(this.instructionOffset, "??? (invalid opcode \"" + opcode + "\")");
-                break;
-            }
+            BytecodeDisassembler.this.lines.put(BytecodeDisassembler.this.instructionOffset, line);
         }
 
         // Format and print the disassembly lines.
@@ -501,24 +284,6 @@ class BytecodeDisassembler {
         }
     }
 
-    private void
-    da(String mnemonic, OperandKind... operandKinds) throws IOException {
-
-        if (operandKinds.length == 0) {
-            this.lines.put(this.instructionOffset, mnemonic);
-            return;
-        }
-
-        Formatter f = new Formatter();
-        f.format("%-15s", mnemonic);
-
-        for (int i = 0; i < operandKinds.length; ++i) {
-            f.format(" %s", operandKinds[i].accept(this.readOperand));
-        }
-
-        this.lines.put(this.instructionOffset, f.toString());
-    }
-
     /**
      * A visitor that reads an instruction operand from the {@link #dis} and transforms it into a human-readable form,
      * suitable for a disassembly listing.
@@ -527,7 +292,7 @@ class BytecodeDisassembler {
     readOperand = new OperandKind.Visitor<String, IOException>() {
 
         @Override public String
-        visitIntFloatClassString1(OperandKind operandType) throws IOException {
+        visitClassFloatIntString1(OperandKind operandType) throws IOException {
 
             short  index = (short) (0xff & BytecodeDisassembler.this.dis.readByte());
             String t     = BytecodeDisassembler.this.method.getClassFile().constantPool.get(
@@ -541,7 +306,7 @@ class BytecodeDisassembler {
         }
 
         @Override public String
-        visitIntFloatClassString2(OperandKind operandType) throws IOException {
+        visitClassFloatIntString2(OperandKind operandType) throws IOException {
 
             short  index = BytecodeDisassembler.this.dis.readShort();
             String t     = BytecodeDisassembler.this.method.getClassFile().constantPool.get(
@@ -555,7 +320,7 @@ class BytecodeDisassembler {
         }
 
         @Override public String
-        visitLongDouble2(OperandKind operandType) throws IOException {
+        visitDoubleLong2(OperandKind operandType) throws IOException {
 
             short  index = BytecodeDisassembler.this.dis.readShort();
             String t     = BytecodeDisassembler.this.method.getClassFile().constantPool.get(
