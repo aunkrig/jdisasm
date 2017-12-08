@@ -810,7 +810,7 @@ class SignatureParser {
 
         List<FormalTypeParameter> ftps = new ArrayList<SignatureParser.FormalTypeParameter>();
         if (scs.peekRead('<')) {
-        	while (!scs.peekRead('>')) ftps.add(this.parseFormalTypeParameter(scs));
+            while (!scs.peekRead('>')) ftps.add(this.parseFormalTypeParameter(scs));
         }
 
         final ClassTypeSignature cts = this.parseClassTypeSignature(scs);

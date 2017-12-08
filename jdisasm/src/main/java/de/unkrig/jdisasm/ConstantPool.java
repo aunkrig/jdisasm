@@ -182,7 +182,8 @@ class ConstantPool {
      * Representation of a CONSTANT_String_info entry.
      */
     public static
-    class ConstantStringInfo implements ConstantClassOrFloatOrIntegerOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrLongOrStringInfo { // SUPPRESS CHECKSTYLE LineLength
+    class ConstantStringInfo
+    implements ConstantClassOrFloatOrIntegerOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo {
 
         /**
          * {@code CONSTANT_String_info.string_index}, see JVMS7 4.4.3
@@ -200,7 +201,8 @@ class ConstantPool {
      * Representation of a CONSTANT_Integer_info entry.
      */
     public static
-    class ConstantIntegerInfo implements ConstantClassOrFloatOrIntegerOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo { // SUPPRESS CHECKSTYLE LineLength
+    class ConstantIntegerInfo
+    implements ConstantClassOrFloatOrIntegerOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo { // SUPPRESS CHECKSTYLE LineLength
 
         /**
          * {@code CONSTANT_Integer_info.bytes}, see JVMS7 4.4.4
@@ -236,7 +238,7 @@ class ConstantPool {
      * Representation of a CONSTANT_Long_info entry.
      */
     public static
-    class ConstantLongInfo implements ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrLongOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo { // SUPPRESS CHECKSTYLE LineLength
+    class ConstantLongInfo implements ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrLongInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo { // SUPPRESS CHECKSTYLE LineLength
 
         /**
          * {@code CONSTANT_Long_info.bytes}, see JVMS7 4.4.5
@@ -253,7 +255,7 @@ class ConstantPool {
      * Representation of a CONSTANT_Double_info entry.
      */
     public static
-    class ConstantDoubleInfo implements ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrLongOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo { // SUPPRESS CHECKSTYLE LineLength
+    class ConstantDoubleInfo implements ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrLongInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo { // SUPPRESS CHECKSTYLE LineLength
 
         /**
          * {@code CONSTANT_Double_info.bytes}, see JVMS7 4.4.5
@@ -425,10 +427,10 @@ class ConstantPool {
     interface ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo extends ConstantPoolEntry {}
 
     /**
-     * A throw-in interface for convenient access to double-or-long-or-string operands (for opcode {@code ldc2_w}).
+     * A throw-in interface for convenient access to double-or-long operands (for opcode {@code ldc2_w}).
      */
     public
-    interface ConstantDoubleOrLongOrStringInfo extends ConstantPoolEntry {}
+    interface ConstantDoubleOrLongInfo extends ConstantPoolEntry {}
 
     private SignatureParser signatureParser;
 
