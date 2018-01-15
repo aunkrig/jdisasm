@@ -63,6 +63,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import de.unkrig.commons.nullanalysis.NotNullByDefault;
 import de.unkrig.commons.nullanalysis.Nullable;
 import de.unkrig.jdisasm.ClassFile.AccessFlags;
 import de.unkrig.jdisasm.ClassFile.Annotation;
@@ -90,6 +91,8 @@ import de.unkrig.jdisasm.ClassFile.RuntimeVisibleAnnotationsAttribute;
 import de.unkrig.jdisasm.ClassFile.RuntimeVisibleParameterAnnotationsAttribute;
 import de.unkrig.jdisasm.ClassFile.SignatureAttribute;
 import de.unkrig.jdisasm.ClassFile.SourceFileAttribute;
+import de.unkrig.jdisasm.ClassFile.StackMapFrame;
+import de.unkrig.jdisasm.ClassFile.StackMapTableAttribute;
 import de.unkrig.jdisasm.ClassFile.SyntheticAttribute;
 import de.unkrig.jdisasm.ClassFile.UnknownAttribute;
 import de.unkrig.jdisasm.ConstantPool.ConstantClassInfo;
@@ -581,6 +584,7 @@ class Disassembler {
 
         // Print class attributes.
         this.printAttributes(cf.attributes, "// ", new Attribute[] {
+            cf.bootstrapMethodsAttribute,
             cf.deprecatedAttribute,
             ema,
             cf.innerClassesAttribute,
@@ -754,6 +758,17 @@ class Disassembler {
                         ;
                     }
                     this.println("    }");
+
+                    this.printAttributes(
+                        ca.attributes,
+                        "    ",
+                        new Attribute[] {
+                            ca.lineNumberTableAttribute,
+                            ca.localVariableTableAttribute,
+                            ca.localVariableTypeTableAttribute
+                        },
+                        AttributeContext.METHOD
+                    );
                 }
             }
 
@@ -868,12 +883,8 @@ class Disassembler {
 
         Collections.sort(tmp, new Comparator<Attribute>() {
 
-            @Override public int
-            compare(@Nullable Attribute a1, @Nullable Attribute a2) {
-                assert a1 != null;
-                assert a2 != null;
-                return a1.getName().compareTo(a2.getName());
-            }
+            @NotNullByDefault(false) @Override public int
+            compare(Attribute a1, Attribute a2) { return a1.getName().compareTo(a2.getName()); }
         });
 
         this.println(prefix + (this.verbose ? "Attributes:" : "Unprocessed attributes:"));
@@ -926,16 +937,10 @@ class Disassembler {
                 List<Attribute>       tmp = ca.attributes;
                 Collections.sort(tmp, new Comparator<Attribute>() {
 
-                    @Override public int
-                    compare(@Nullable Attribute a1, @Nullable Attribute a2) {
-                        assert a1 != null;
-                        assert a2 != null;
-                        return a1.getName().compareTo(a2.getName());
-                    }
+                    @NotNullByDefault(false) @Override public int
+                    compare(Attribute a1, Attribute a2) { return a1.getName().compareTo(a2.getName()); }
                 });
-                for (Attribute a : tmp) {
-                    a.accept(pav);
-                }
+                for (Attribute a : tmp) a.accept(pav);
                 Disassembler.this.println(this.prefix + "  }");
             }
         }
@@ -1113,6 +1118,17 @@ class Disassembler {
         visit(SourceFileAttribute sfa) {
             Disassembler.this.println(this.prefix + "SourceFile:");
             Disassembler.this.println(this.prefix + "  " + sfa.sourceFile);
+        }
+
+        @Override public void
+        visit(StackMapTableAttribute smta) {
+            Disassembler.this.println(this.prefix + "StackMapTable:");
+            Disassembler.this.println(this.prefix + "  0: append_frame(method parameters)");
+            int bytecodeOffset = -1;
+            for (StackMapFrame smf : smta.entries) {
+                bytecodeOffset += 1 + smf.offsetDelta;
+                Disassembler.this.println(this.prefix + "  " + bytecodeOffset + ": " + smf);
+            }
         }
 
         @Override public void

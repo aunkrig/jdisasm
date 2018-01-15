@@ -46,6 +46,7 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -715,6 +716,9 @@ class ClassFile {
         final DataInputStream dis,
         AttributeVisitor      visitor
     ) throws IOException {
+
+        // Attributes as defined by JVMS8, section 4.7:
+
         if ("AnnotationDefault".equals(attributeName)) {
             visitor.visit(new AnnotationDefaultAttribute(dis, this));
         } else
@@ -748,23 +752,38 @@ class ClassFile {
         if ("LocalVariableTypeTable".equals(attributeName)) {
             visitor.visit(new LocalVariableTypeTableAttribute(dis, this));
         } else
+//        if ("MethodParameters".equals(attributeName)) {
+//            //...
+//        } else
         if ("RuntimeInvisibleAnnotations".equals(attributeName)) {
             visitor.visit(new RuntimeInvisibleAnnotationsAttribute(dis, this));
         } else
         if ("RuntimeInvisibleParameterAnnotations".equals(attributeName)) {
             visitor.visit(new RuntimeInvisibleParameterAnnotationsAttribute(dis, this));
         } else
+//        if ("RuntimeInvisibleTypeAnnotations".equals(attributeName)) {
+//            //...
+//        } else
         if ("RuntimeVisibleAnnotations".equals(attributeName)) {
             visitor.visit(new RuntimeVisibleAnnotationsAttribute(dis, this));
         } else
         if ("RuntimeVisibleParameterAnnotations".equals(attributeName)) {
             visitor.visit(new RuntimeVisibleParameterAnnotationsAttribute(dis, this));
         } else
+//        if ("RuntimeVisibleTypeAnnotations".equals(attributeName)) {
+//            //...
+//        } else
         if ("Signature".equals(attributeName)) {
             visitor.visit(new SignatureAttribute(dis, this));
         } else
+//        if ("SourceDebugExtension".equals(attributeName)) {
+//            //...
+//        } else
         if ("SourceFile".equals(attributeName)) {
             visitor.visit(new SourceFileAttribute(dis, this));
+        } else
+        if ("StackMapTable".equals(attributeName)) {
+            visitor.visit(new StackMapTableAttribute(dis, this));
         } else
         if ("Synthetic".equals(attributeName)) {
             visitor.visit(new SyntheticAttribute(dis, this));
@@ -780,7 +799,7 @@ class ClassFile {
     public
     interface AttributeVisitor {
 
-        // SUPPRESS CHECKSTYLE JavadocMethod:18
+        // SUPPRESS CHECKSTYLE JavadocMethod:19
         void visit(AnnotationDefaultAttribute                    ada);
         void visit(CodeAttribute                                 ca);
         void visit(ConstantValueAttribute                        cva);
@@ -797,6 +816,7 @@ class ClassFile {
         void visit(RuntimeVisibleParameterAnnotationsAttribute   rvpaa);
         void visit(SignatureAttribute                            sa);
         void visit(SourceFileAttribute                           sfa);
+        void visit(StackMapTableAttribute                        smta);
         void visit(SyntheticAttribute                            sa);
         void visit(BootstrapMethodsAttribute                     bma);
 
@@ -817,25 +837,26 @@ class ClassFile {
          */
         public abstract void visitOther(Attribute ai);
 
-        @Override public void visit(BootstrapMethodsAttribute                     bma)   { this.visitOther(bma); }
-        @Override public void visit(AnnotationDefaultAttribute                    ada)   { this.visitOther(ada); }
-        @Override public void visit(CodeAttribute                                 ca)    { this.visitOther(ca); }
-        @Override public void visit(ConstantValueAttribute                        cva)   { this.visitOther(cva); }
-        @Override public void visit(DeprecatedAttribute                           da)    { this.visitOther(da); }
-        @Override public void visit(EnclosingMethodAttribute                      ema)   { this.visitOther(ema); }
-        @Override public void visit(ExceptionsAttribute                           ea)    { this.visitOther(ea); }
-        @Override public void visit(InnerClassesAttribute                         ica)   { this.visitOther(ica); }
-        @Override public void visit(LineNumberTableAttribute                      lnta)  { this.visitOther(lnta); }
-        @Override public void visit(LocalVariableTableAttribute                   lvta)  { this.visitOther(lvta); }
+        @Override public void visit(BootstrapMethodsAttribute                     bma)   { this.visitOther(bma);   }
+        @Override public void visit(AnnotationDefaultAttribute                    ada)   { this.visitOther(ada);   }
+        @Override public void visit(CodeAttribute                                 ca)    { this.visitOther(ca);    }
+        @Override public void visit(ConstantValueAttribute                        cva)   { this.visitOther(cva);   }
+        @Override public void visit(DeprecatedAttribute                           da)    { this.visitOther(da);    }
+        @Override public void visit(EnclosingMethodAttribute                      ema)   { this.visitOther(ema);   }
+        @Override public void visit(ExceptionsAttribute                           ea)    { this.visitOther(ea);    }
+        @Override public void visit(InnerClassesAttribute                         ica)   { this.visitOther(ica);   }
+        @Override public void visit(LineNumberTableAttribute                      lnta)  { this.visitOther(lnta);  }
+        @Override public void visit(LocalVariableTableAttribute                   lvta)  { this.visitOther(lvta);  }
         @Override public void visit(LocalVariableTypeTableAttribute               lvtta) { this.visitOther(lvtta); }
-        @Override public void visit(RuntimeInvisibleAnnotationsAttribute          riaa)  { this.visitOther(riaa); }
+        @Override public void visit(RuntimeInvisibleAnnotationsAttribute          riaa)  { this.visitOther(riaa);  }
         @Override public void visit(RuntimeInvisibleParameterAnnotationsAttribute ripaa) { this.visitOther(ripaa); }
-        @Override public void visit(RuntimeVisibleAnnotationsAttribute            rvaa)  { this.visitOther(rvaa); }
+        @Override public void visit(RuntimeVisibleAnnotationsAttribute            rvaa)  { this.visitOther(rvaa);  }
         @Override public void visit(RuntimeVisibleParameterAnnotationsAttribute   rvpaa) { this.visitOther(rvpaa); }
-        @Override public void visit(SignatureAttribute                            sa)    { this.visitOther(sa); }
-        @Override public void visit(SourceFileAttribute                           sfa)   { this.visitOther(sfa); }
-        @Override public void visit(SyntheticAttribute                            sa)    { this.visitOther(sa); }
-        @Override public void visit(UnknownAttribute                              a)     { this.visitOther(a); }
+        @Override public void visit(SignatureAttribute                            sa)    { this.visitOther(sa);    }
+        @Override public void visit(SourceFileAttribute                           sfa)   { this.visitOther(sfa);   }
+        @Override public void visit(StackMapTableAttribute                        smta)  { this.visitOther(smta);  }
+        @Override public void visit(SyntheticAttribute                            sa)    { this.visitOther(sa);    }
+        @Override public void visit(UnknownAttribute                              a)     { this.visitOther(a);     }
     }
 
     /**
@@ -1454,8 +1475,8 @@ class ClassFile {
                 }
 
                 @Override public void
-                visitOther(Attribute ai) {
-                    CodeAttribute.this.attributes.add(ai);
+                visitOther(Attribute a) {
+                    CodeAttribute.this.attributes.add(a);
                 }
             });
         }
@@ -1550,6 +1571,254 @@ class ClassFile {
 
         @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this); }
         @Override public String getName()                        { return "SourceFile"; }
+    }
+
+    /**
+     * Representation of the <a href="http://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.7.4">{@code
+     * StackMapTable} attribute</a>.
+     */
+    public
+    class StackMapTableAttribute implements Attribute {
+
+        final List<StackMapFrame> entries = new ArrayList<StackMapFrame>();
+
+        StackMapTableAttribute(DataInputStream dis, ClassFile cf) throws IOException {
+            for (int i = dis.readShort(); i > 0; i--) this.entries.add(this.readStackMapFrame(dis));
+        }
+
+        private StackMapFrame
+        readStackMapFrame(DataInputStream dis) throws IOException {
+            int frameType = 0xff & dis.readByte();
+            switch (frameType) {
+
+            case 247:
+                return new SameLocals1StackItemFrameExtended(
+                    dis.readShort(),                   // offsetDelta
+                    this.readVerificationTypeInfo(dis) // stack
+                );
+
+            case 248:
+            case 249:
+            case 250:
+                return new ChopFrame(dis.readShort());
+
+            case 251:
+                return new SameFrameExtended(dis.readShort());
+
+            case 252:
+            case 253:
+            case 254:
+                return new AppendFrame(
+                    dis.readShort(),                                     // offsetDelta
+                    this.readVerificationTypeInfos(dis, frameType - 251) // locals
+                );
+
+            case 255:
+                return new FullFrame(
+                    dis.readShort(),                                      // offsetDelta
+                    this.readVerificationTypeInfos(dis, dis.readShort()), // locals
+                    this.readVerificationTypeInfos(dis, dis.readShort())  // stack
+                );
+
+            default:
+                if (frameType <= 63) return new SameFrame(frameType);
+                if (frameType <= 127) {
+                    return new SameLocals1StackItemFrame(
+                        frameType - 64,                    // offsetDelta
+                        this.readVerificationTypeInfo(dis) // stack
+                    );
+                }
+                if (frameType <= 246) throw new ClassFileFormatException("Reserved frame type " + frameType);
+            }
+
+            throw new AssertionError(frameType);
+        }
+
+        private VerificationTypeInfo[]
+        readVerificationTypeInfos(DataInputStream dis, int n) throws IOException {
+
+            VerificationTypeInfo[] result = new VerificationTypeInfo[n];
+            for (int i = 0; i < n; i++) result[i] = this.readVerificationTypeInfo(dis);
+
+            return result;
+        }
+
+        private VerificationTypeInfo
+        readVerificationTypeInfo(DataInputStream dis) throws IOException {
+            int tag = 0xff & dis.readByte();
+            switch (tag) {
+
+            case 0: return new TopVariableInfo();
+            case 1: return new IntegerVariableInfo();
+            case 2: return new FloatVariableInfo();
+            case 3: return new DoubleVariableInfo();
+            case 4: return new LongVariableInfo();
+            case 5: return new NullVariableInfo();
+            case 6: return new UninitializedThisVariableInfo();
+            case 7: return new ObjectVariableInfo(ClassFile.this.constantPool.get(dis.readShort(), ConstantClassInfo.class));
+            case 8: return new UninitializedVariableInfo(dis.readShort());
+
+            default:
+                throw new ClassFileFormatException("Invalid verification_type_info tag " + tag);
+            }
+        }
+
+        @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this); }
+        @Override public String getName()                        { return "StackMapTable"; }
+    }
+
+    public static
+    class StackMapFrame {
+        final int offsetDelta;
+        public StackMapFrame(int offsetDelta) { this.offsetDelta = offsetDelta; }
+}
+
+    public static
+    class SameFrame extends StackMapFrame {
+        public SameFrame(int offsetDelta) { super(offsetDelta); }
+
+        @Override public String
+        toString() { return "same_frame"; }
+    }
+    public static
+    class SameLocals1StackItemFrame extends StackMapFrame {
+        private final VerificationTypeInfo stack;
+
+        public
+        SameLocals1StackItemFrame(int offsetDelta, VerificationTypeInfo stack) {
+            super(offsetDelta);
+            this.stack = stack;
+        }
+
+        @Override public String
+        toString() {
+            return "same_locals_1_stack_item_frame(stack=" + this.stack + ")";
+        }
+    }
+    public static
+    class SameLocals1StackItemFrameExtended extends StackMapFrame {
+        private final VerificationTypeInfo stack;
+
+        public
+        SameLocals1StackItemFrameExtended(int offsetDelta, VerificationTypeInfo stack) {
+            super(offsetDelta);
+            this.stack = stack;
+        }
+
+        @Override public String
+        toString() {
+            return (
+                "same_locals_1_stack_item_frame_extended(offsetDelta="
+                + this.offsetDelta
+                + ", stack="
+                + this.stack
+                + ")"
+            );
+        }
+    }
+    public static
+    class ChopFrame extends StackMapFrame {
+        public ChopFrame(int offsetDelta) { super(offsetDelta); }
+
+        @Override public String
+        toString() { return "chop_frame"; }
+    }
+    public static
+    class SameFrameExtended extends StackMapFrame {
+        public SameFrameExtended(int offsetDelta) { super(offsetDelta); }
+
+        @Override public String
+        toString() { return "same_frame_extended"; }
+    }
+    public static
+    class AppendFrame extends StackMapFrame {
+        private final VerificationTypeInfo[] locals;
+
+        public AppendFrame(int offsetDelta, VerificationTypeInfo[] locals) {
+        	super(offsetDelta);
+        	this.locals = locals;
+    	}
+
+        @Override public String
+        toString() {
+            return "append_frame(stack=" + Arrays.toString(this.locals) + ")";
+        }
+    }
+    public static
+    class FullFrame extends StackMapFrame {
+        private final VerificationTypeInfo[] locals;
+        private final VerificationTypeInfo[] stack;
+
+        public
+        FullFrame(int offsetDelta, VerificationTypeInfo[] locals, VerificationTypeInfo[] stack) {
+            super(offsetDelta);
+            this.locals = locals;
+            this.stack  = stack;
+        }
+
+        @Override public String
+        toString() {
+            return (
+                "full_frame(offsetDelta="
+                + this.offsetDelta
+                + ", locals="
+                + Arrays.toString(this.locals)
+                + ", stack="
+                + Arrays.toString(this.stack)
+                + ")"
+            );
+        }
+    }
+
+    interface VerificationTypeInfo {}
+
+    public static
+    class TopVariableInfo implements VerificationTypeInfo {
+		@Override public String toString() { return "top"; }
+    }
+
+    public static
+    class IntegerVariableInfo implements VerificationTypeInfo {
+    	@Override public String toString() { return "int"; }
+    }
+
+    public static
+    class FloatVariableInfo implements VerificationTypeInfo {
+    	@Override public String toString() { return "float"; }
+    }
+
+    public static
+    class LongVariableInfo implements VerificationTypeInfo {
+    	@Override public String toString() { return "long"; }
+    }
+
+    public static
+    class DoubleVariableInfo implements VerificationTypeInfo {
+    	@Override public String toString() { return "double"; }
+    }
+
+    public static
+    class NullVariableInfo implements VerificationTypeInfo {
+    	@Override public String toString() { return "null"; }
+    }
+
+    public static
+    class UninitializedThisVariableInfo implements VerificationTypeInfo {
+    	@Override public String toString() { return "uninitializedThis"; }
+    }
+
+    public static
+    class ObjectVariableInfo implements VerificationTypeInfo {
+		private final ConstantClassInfo constantClassInfo;
+		public ObjectVariableInfo(ConstantClassInfo constantClassInfo) { this.constantClassInfo = constantClassInfo; }
+		@Override public String toString() { return this.constantClassInfo.toString(); }
+    }
+
+    public static
+    class UninitializedVariableInfo implements VerificationTypeInfo {
+        private final short offset;
+		public UninitializedVariableInfo(short offset) { this.offset = offset;}
+        @Override public String toString() { return "uninitialized(offset=" + this.offset + ")"; }
     }
 
     /**
