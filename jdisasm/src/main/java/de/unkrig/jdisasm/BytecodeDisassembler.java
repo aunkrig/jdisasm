@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Formatter;
 import java.util.HashMap;
@@ -71,7 +70,7 @@ class BytecodeDisassembler {
     private final DataInputStream                    dis;
     private final List<ExceptionTableEntry>          exceptionTable;
     @Nullable private final LineNumberTableAttribute lineNumberTableAttribute;
-    private final Map<Integer, String>               sourceLines;
+    @Nullable private final Map<Integer, String>     sourceLines;
     private final Method                             method;
     private final Disassembler                       d;
 
@@ -88,7 +87,7 @@ class BytecodeDisassembler {
         InputStream                        is,
         List<ExceptionTableEntry>          exceptionTable,
         @Nullable LineNumberTableAttribute lineNumberTableAttribute,
-        Map<Integer, String>               sourceLines,
+        @Nullable Map<Integer, String>     sourceLines,
         Method                             method,
         Disassembler                       d
     ) {
@@ -259,25 +258,21 @@ class BytecodeDisassembler {
                 int lineNumber = this.findLineNumber(instructionOffset);
                 if (lineNumber == -1) break PRINT_SOURCE_LINE;
 
-                String sourceLine = this.sourceLines.get(lineNumber);
-                if (sourceLine == null && this.d.hideLines) break PRINT_SOURCE_LINE;
+                String sourceLine = this.sourceLines != null ? this.sourceLines.get(lineNumber) : null;
 
-                StringBuilder sb = new StringBuilder(indentation);
                 if (sourceLine == null) {
-                    sb.append("// Line ").append(lineNumber);
+                    if (this.d.showLineNumbers) {
+                        pw.println(indentation + "// Line " + lineNumber);
+                    } else {
+                        ;
+                    }
                 } else {
-                    sb.append("// ");
-                    if (sb.length() < 40) {
-                        char[] spc = new char[40 - sb.length()];
-                        Arrays.fill(spc, ' ');
-                        sb.append(spc);
+                    if (this.d.showLineNumbers) {
+                        pw.println(indentation + "//                                      Line " + lineNumber + ": " + sourceLine); // SUPPRESS CHECKSTYLE LineLength
+                    } else {
+                        pw.println(indentation + "//                                      " + sourceLine);
                     }
-                    if (!this.d.hideLines) {
-                        sb.append("Line ").append(lineNumber).append(": ");
-                    }
-                    sb.append(sourceLine);
                 }
-                pw.println(sb.toString());
             }
 
             pw.println(indentation + text);

@@ -65,6 +65,9 @@ class SignatureParser {
         String beautifyPackageNamePrefix(String packageSpecifier);
     }
 
+    /**
+     * A trivial implementation of {@link Options}.
+     */
     public static final Options DEFAULT_OPTIONS = new Options() {
 
         @Override public String
@@ -84,7 +87,7 @@ class SignatureParser {
     }
 
     /**
-     * Decodes a 'class signature' as defined in JLS7 4.3.4.
+     * Decodes a 'class signature' as defined in JVMS7 4.3.4 / JVMS8 4.7.9.1.
      */
     public ClassSignature
     decodeClassSignature(String s) throws SignatureException {
@@ -104,7 +107,7 @@ class SignatureParser {
     }
 
     /**
-     * Decodes a 'method type signature' as defined in JLS7 4.3.4.
+     * Decodes a 'method type signature' as defined in JVMS7 4.3.4 / JVMS8 4.7.9.1.
      */
     public MethodTypeSignature
     decodeMethodTypeSignature(String s) throws SignatureException {
@@ -123,7 +126,7 @@ class SignatureParser {
     }
 
     /**
-     * Decodes a 'type signature' as defined in JLS7 4.3.4.
+     * Decodes a 'type signature' as defined in JVMS7 4.3.4 / JVMS8 4.7.9.1.
      */
     public TypeSignature
     decodeTypeSignature(String s) throws SignatureException {
@@ -142,7 +145,7 @@ class SignatureParser {
     }
 
     /**
-     * Decodes a 'field type signature' as defined in JLS7 4.3.4.
+     * Decodes a 'field type signature' as defined in JVMS7 4.3.4 / JVMS8 4.7.9.1.
      */
     public FieldTypeSignature
     decodeFieldTypeSignature(String s) throws SignatureException {
@@ -161,7 +164,7 @@ class SignatureParser {
     }
 
     /**
-     * Decodes a 'method descriptor' as defined in JLS7 4.3.3.
+     * Decodes a 'method descriptor' as defined in JVMS[78] 4.3.3.
      */
     public MethodTypeSignature
     decodeMethodDescriptor(String s) throws SignatureException {
@@ -179,7 +182,7 @@ class SignatureParser {
         }
     }
 
-    public TypeSignature
+    private TypeSignature
     decodeClassName(String internalName) {
         String className = internalName.replace('/', '.');
 
@@ -230,7 +233,7 @@ class SignatureParser {
     }
 
     /**
-     * Decodes a 'return type' as defined in JLS7 4.3.4.
+     * Decodes a 'return type' as defined in JVMS7 4.3.4 / JVMS8 4.7.9.1.
      */
     public TypeSignature
     decodeReturnType(String s) throws SignatureException {

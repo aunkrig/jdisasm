@@ -42,6 +42,7 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -54,13 +55,13 @@ import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 
 import de.unkrig.commons.nullanalysis.NotNullByDefault;
@@ -143,13 +144,24 @@ class Disassembler {
     boolean verbose;
 
     /**
-     * {@code null} means "do not attempt to find the source file".
+     * An empty array means "do not attempt to find the source file".
      */
-    @Nullable private File sourceDirectory;
+    private File[] sourcePath = new File[0];
 
-    boolean         hideLines;
-    private boolean hideVars;
-    boolean         symbolicLabels;
+    /**
+     * Whether to print line numbers.
+     */
+    boolean showLineNumbers = true;
+
+    /**
+     * Whether to resolve the local variable names.
+     */
+    boolean showVariableNames = true;
+
+    /**
+     * Whether to print symbolic labels instead of offsets.
+     */
+    boolean symbolicLabels;
 
     private SignatureParser signatureParser = new SignatureParser();
 
@@ -214,13 +226,13 @@ class Disassembler {
                 d.setVerbose(true);
             } else
             if ("-src".equals(arg)) {
-                d.setSourceDirectory(new File(args[++i]));
+                d.setSourcePath(Disassembler.splitPath(args[++i]));
             } else
             if ("-hide-lines".equals(arg)) {
-                d.setHideLines(true);
+                d.setShowLineNumbers(false);
             } else
             if ("-hide-vars".equals(arg)) {
-                d.setHideVars(true);
+                d.setShowVariableNames(false);
             } else
             if ("-symbolic-labels".equals(arg)) {
                 d.setSymbolicLabels(true);
@@ -236,9 +248,9 @@ class Disassembler {
                     + "Valid options are:%n"
                     + "  -o <output-file>   Store disassembly output in a file.%n"
                     + "  -verbose%n"
-                    + "  -src <source-dir>  Interweave the output with the class file's source code.%n"
-                    + "  -hide-lines        Don't print the line numbers.%n"
-                    + "  -hide-vars         Don't print the local variable names.%n"
+                    + "  -src <source-path> Interweave the output with the class file's source code.%n"
+                    + "  -hide-lines        Don't print line numbers.%n"
+                    + "  -hide-vars         Don't resolve local variable names.%n"
                     + "  -symbolic-labels   Use symbolic labels instead of offsets.%n"
                 ), Disassembler.class.getName());
 
@@ -266,6 +278,26 @@ class Disassembler {
             }
         }
     }
+
+    private static File[]
+    splitPath(@Nullable String path) {
+
+        if (path == null) return new File[0];
+
+        StringTokenizer st = new StringTokenizer(path, File.pathSeparator);
+
+        File dir = new File(st.nextToken());
+
+        if (!st.hasMoreTokens()) return new File[] { dir };
+
+        List<File> result = new ArrayList<File>();
+        result.add(dir);
+
+        while (st.hasMoreTokens()) result.add(new File(st.nextToken()));
+
+        return result.toArray(new File[result.size()]);
+    }
+
     private static final Pattern IS_URL = Pattern.compile("\\w\\w+:.*");
 
     public Disassembler() {}
@@ -297,23 +329,23 @@ class Disassembler {
     setVerbose(boolean verbose) { this.verbose = verbose; }
 
     /**
-     * Where to look for source files; {@code null} disables source file loading. Source file loading is disabled by
+     * Where to look for source files; an empty array disables source file loading. Source file loading is disabled by
      * default.
      */
     public void
-    setSourceDirectory(@Nullable File sourceDirectory) { this.sourceDirectory = sourceDirectory; }
+    setSourcePath(File[] value) { this.sourcePath = value; }
 
     /**
-     * @param hideLines Whether source line numbers are suppressed in the disassembly (defaults to {@code false})
+     * @param value Whether to print line numbers in the disassembly (defaults to {@code true})
      */
     public void
-    setHideLines(boolean hideLines) { this.hideLines = hideLines; }
+    setShowLineNumbers(boolean value) { this.showLineNumbers = value; }
 
     /**
-     * @param hideVars Whether local variable names are suppressed in the disassembly (defaults to {@code false})
+     * @param value Whether local variable names are resolved in the disassembly (defaults to {@code true})
      */
     public void
-    setHideVars(boolean hideVars) { this.hideVars = hideVars; }
+    setShowVariableNames(boolean value) { this.showVariableNames = value; }
 
     /**
      * @param symbolicLabels Whether use numeric labels ('#123') or symbolic labels /'L12') in the bytecode disassembly
@@ -540,42 +572,36 @@ class Disassembler {
         // Print fields.
         this.disassembleFields(cf.fields);
 
-        // Read source file.
-        Map<Integer, String> sourceLines = new HashMap<Integer, String>();
-        READ_SOURCE_LINES:
-        if (this.sourceDirectory != null) {
+        // Before disassembling the class's methods, locate, read and load the source file.
+        Map<Integer, String> sourceLines;
+        {
             SourceFileAttribute sfa = cf.sourceFileAttribute;
-            if (sfa == null) break READ_SOURCE_LINES;
 
-            File sourceFile = new File(this.sourceDirectory, sfa.sourceFile);
+            sourceLines = null;
+            for (File sourceDirectory : this.sourcePath) {
 
-            if (!sourceFile.exists()) {
+                // Attempt to locate the source file through the class file's "SourceFile" attribute.
+                if (sfa != null) {
+                    sourceLines = Disassembler.loadFile(new File(sourceDirectory, sfa.sourceFile));
+                    if (sourceLines != null) break;
+                }
+
+                // Attempt to locate the source file through the (top-level) class name.
                 String toplevelClassName;
                 {
                     toplevelClassName = cf.thisClassName;
                     int idx = toplevelClassName.indexOf('$');
                     if (idx != -1) toplevelClassName = toplevelClassName.substring(0, idx);
                 }
-                sourceFile = new File(
-                    this.sourceDirectory,
+                sourceLines = Disassembler.loadFile(new File(
+                    sourceDirectory,
                     toplevelClassName.replace('.', File.separatorChar) + ".java"
-                );
-            }
-            if (!sourceFile.exists()) break READ_SOURCE_LINES;
-
-            LineNumberReader lnr = new LineNumberReader(new FileReader(sourceFile));
-            try {
-                for (;;) {
-                    String sl = lnr.readLine();
-                    if (sl == null) break;
-                    sourceLines.put(lnr.getLineNumber(), sl);
-                }
-            } finally {
-                try { lnr.close(); } catch (Exception e) {}
+                ));
+                if (sourceLines != null) break;
             }
         }
 
-        // Methods.
+        // Disassemble all methods.
         for (Method m : cf.methods) {
             this.disassembleMethod(m, sourceLines);
         }
@@ -583,24 +609,35 @@ class Disassembler {
         this.println("}");
 
         // Print class attributes.
-        this.printAttributes(cf.attributes, "// ", new Attribute[] {
-            cf.bootstrapMethodsAttribute,
-            cf.deprecatedAttribute,
-            ema,
-            cf.innerClassesAttribute,
-            cf.runtimeInvisibleAnnotationsAttribute,
-            cf.runtimeVisibleAnnotationsAttribute,
-            cf.signatureAttribute,
-            cf.sourceFileAttribute,
-            cf.syntheticAttribute,
-        }, AttributeContext.CLASS);
+        this.printAttributes(cf.unprocessedAttributes, cf.allAttributes, "// ", AttributeContext.CLASS);
+    }
+
+    @Nullable private static Map<Integer, String>
+    loadFile(File file) throws FileNotFoundException, IOException {
+
+        if (!file.exists()) return null;
+
+        Map<Integer, String> result = new HashMap<Integer, String>();
+
+        LineNumberReader lnr = new LineNumberReader(new FileReader(file));
+        try {
+            for (;;) {
+                String sl = lnr.readLine();
+                if (sl == null) break;
+                result.put(lnr.getLineNumber(), sl);
+            }
+        } finally {
+            try { lnr.close(); } catch (Exception e) {}
+        }
+
+        return result;
     }
 
     /**
      * Disassembles one method.
      */
     private void
-    disassembleMethod(Method method, Map<Integer, String> sourceLines) {
+    disassembleMethod(Method method, @Nullable Map<Integer, String> sourceLines) {
         try {
 
             // One blank line before each method declaration.
@@ -759,32 +796,17 @@ class Disassembler {
                     }
                     this.println("    }");
 
-                    this.printAttributes(
-                        ca.attributes,
-                        "    ",
-                        new Attribute[] {
-                            ca.lineNumberTableAttribute,
-                            ca.localVariableTableAttribute,
-                            ca.localVariableTypeTableAttribute
-                        },
-                        AttributeContext.METHOD
-                    );
+                    this.printAttributes(ca.unprocessedAttributes, ca.allAttributes, "    ", AttributeContext.METHOD);
                 }
             }
 
             // Print method attributes.
-            this.printAttributes(method.attributes, "    // ", new Attribute[] {
-                method.annotationDefaultAttribute,
-                method.codeAttribute,
-                method.deprecatedAttribute,
-                method.exceptionsAttribute,
-                method.runtimeInvisibleAnnotationsAttribute,
-                method.runtimeInvisibleParameterAnnotationsAttribute,
-                method.runtimeVisibleAnnotationsAttribute,
-                method.runtimeVisibleParameterAnnotationsAttribute,
-                method.signatureAttribute,
-                method.syntheticAttribute,
-            }, AttributeContext.METHOD);
+            this.printAttributes(
+                method.unprocessedAttributes,
+                method.allAttributes,
+                "    // ",
+                AttributeContext.METHOD
+            );
         } catch (RuntimeException rte) {
             throw new RuntimeException("Method '" + method.name + "' " + method.descriptor, rte);
         }
@@ -839,14 +861,7 @@ class Disassembler {
             }
 
             // Print field attributes.
-            this.printAttributes(field.attributes, "    // ", new Attribute[] {
-                field.constantValueAttribute,
-                field.deprecatedAttribute,
-                field.runtimeInvisibleAnnotationsAttribute,
-                field.runtimeVisibleAnnotationsAttribute,
-                field.signatureAttribute,
-                field.syntheticAttribute,
-            }, AttributeContext.FIELD);
+            this.printAttributes(field.unprocessedAttributes, field.allAttributes, "    // ", AttributeContext.FIELD);
         }
     }
 
@@ -866,20 +881,21 @@ class Disassembler {
         return (oci == null ? "[local class]" : oci) + " { " + Disassembler.typeAccessFlagsToString(icafs) + ici + " }";
     }
 
+    /**
+     * Prints the <em>unprocessedAttributes</em>, or, iff {@link Disassembler#verbose}, <em>allAttributes</em>.
+     */
     private void
     printAttributes(
-        List<Attribute>  attributes,
+        List<Attribute>  unprocessedAttributes,
+        List<Attribute>  allAttributes,
         String           prefix,
-        Attribute[]      excludedAttributes,
         AttributeContext context
     ) {
-        List<Attribute> tmp = new ArrayList<Attribute>(attributes);
+        List<Attribute> tmp = this.verbose ? allAttributes : unprocessedAttributes;
 
-        // Strip excluded attributes.
-        if (!this.verbose) {
-            tmp.removeAll(Arrays.asList(excludedAttributes));
-        }
         if (tmp.isEmpty()) return;
+
+        tmp = new ArrayList<Attribute>(tmp);
 
         Collections.sort(tmp, new Comparator<Attribute>() {
 
@@ -887,7 +903,7 @@ class Disassembler {
             compare(Attribute a1, Attribute a2) { return a1.getName().compareTo(a2.getName()); }
         });
 
-        this.println(prefix + (this.verbose ? "Attributes:" : "Unprocessed attributes:"));
+        this.println(prefix + (this.verbose ? "All attributes:" : "Unprocessed attributes:"));
         PrintAttributeVisitor visitor = new PrintAttributeVisitor(prefix + "  ", context);
         for (Attribute a : tmp) a.accept(visitor);
     }
@@ -931,18 +947,12 @@ class Disassembler {
             this.print(ca.code);
             Disassembler.this.println(this.prefix + "  }");
 
-            if (!ca.attributes.isEmpty()) {
-                Disassembler.this.println(this.prefix + "  attributes = {");
-                PrintAttributeVisitor pav = new PrintAttributeVisitor(this.prefix + "    ", AttributeContext.METHOD);
-                List<Attribute>       tmp = ca.attributes;
-                Collections.sort(tmp, new Comparator<Attribute>() {
-
-                    @NotNullByDefault(false) @Override public int
-                    compare(Attribute a1, Attribute a2) { return a1.getName().compareTo(a2.getName()); }
-                });
-                for (Attribute a : tmp) a.accept(pav);
-                Disassembler.this.println(this.prefix + "  }");
-            }
+            Disassembler.this.printAttributes(
+                ca.unprocessedAttributes,
+                ca.allAttributes,
+                this.prefix + "  ",
+                AttributeContext.METHOD
+            );
         }
 
         private void
@@ -1198,6 +1208,9 @@ class Disassembler {
         this.print(")");
     }
 
+    /**
+     * @return Metadata about the local variable at the given index and instruction offset in the given <em>method</em>
+     */
     LocalVariable
     getLocalVariable(short localVariableIndex, int instructionOffset, Method method) {
 
@@ -1228,7 +1241,7 @@ class Disassembler {
         );
 
         CodeAttribute ca = method.codeAttribute;
-        if (ca != null && (localVariableIndex >= firstLocalVariable || !this.hideVars)) {
+        if (ca != null && (localVariableIndex >= firstLocalVariable || this.showVariableNames)) {
             LocalVariableTypeTableAttribute lvtta = ca.localVariableTypeTableAttribute;
             if (lvtta != null) {
                 for (LocalVariableTypeTableAttribute.Entry lvtte : lvtta.entries) {
@@ -1239,7 +1252,7 @@ class Disassembler {
                     ) {
                         return new LocalVariable(
                             this.decodeFieldTypeSignature(lvtte.signature),
-                            this.hideVars ? defaultName : lvtte.name
+                            this.showVariableNames ? lvtte.name : defaultName
                         );
                     }
                 }
@@ -1255,7 +1268,7 @@ class Disassembler {
                     ) {
                         return new LocalVariable(
                             this.decodeFieldDescriptor(lvte.descriptor),
-                            this.hideVars ? defaultName : lvte.name
+                            this.showVariableNames ? lvte.name : defaultName
                         );
                     }
                 }
@@ -1293,6 +1306,9 @@ class Disassembler {
         }
     }
 
+    /**
+     * Exception-proof wrapper for {@link SignatureParser#decodeMethodTypeSignature(String)}.
+     */
     MethodTypeSignature
     decodeMethodTypeSignature(String ms) {
         try {
@@ -1308,6 +1324,9 @@ class Disassembler {
         }
     }
 
+    /**
+     * Exception-proof wrapper for {@link SignatureParser#decodeFieldDescriptor(String)}.
+     */
     TypeSignature
     decodeFieldDescriptor(String fd) {
         try {
@@ -1318,6 +1337,9 @@ class Disassembler {
         }
     }
 
+    /**
+     * Exception-proof wrapper for {@link SignatureParser#decodeMethodDescriptor(String)(String)}.
+     */
     MethodTypeSignature
     decodeMethodDescriptor(String md) {
         try {

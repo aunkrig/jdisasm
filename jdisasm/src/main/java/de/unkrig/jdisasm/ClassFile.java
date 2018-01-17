@@ -179,7 +179,12 @@ class ClassFile {
     /**
      * All attributes of this class.
      */
-    public final List<Attribute> attributes = new ArrayList<Attribute>();
+    public final List<Attribute> allAttributes = new ArrayList<Attribute>();
+
+    /**
+     * All unprocessed attributes of this class.
+     */
+    public final List<Attribute> unprocessedAttributes = new ArrayList<Attribute>();
 
     private SignatureParser signatureParser = new SignatureParser();
 
@@ -346,60 +351,61 @@ class ClassFile {
             @Override public void
             visit(BootstrapMethodsAttribute bma) {
                 ClassFile.this.bootstrapMethodsAttribute = bma;
-                ClassFile.this.attributes.add(bma);
+                ClassFile.this.allAttributes.add(bma);
             }
 
             @Override public void
             visit(DeprecatedAttribute da) {
                 ClassFile.this.deprecatedAttribute = da;
-                ClassFile.this.attributes.add(da);
+                ClassFile.this.allAttributes.add(da);
             }
 
             @Override public void
             visit(EnclosingMethodAttribute ema) {
                 ClassFile.this.enclosingMethodAttribute = ema;
-                ClassFile.this.attributes.add(ema);
+                ClassFile.this.allAttributes.add(ema);
             }
 
             @Override public void
             visit(InnerClassesAttribute ica) {
                 ClassFile.this.innerClassesAttribute = ica;
-                ClassFile.this.attributes.add(ica);
+                ClassFile.this.allAttributes.add(ica);
             }
 
             @Override public void
             visit(RuntimeInvisibleAnnotationsAttribute riaa) {
                 ClassFile.this.runtimeInvisibleAnnotationsAttribute = riaa;
-                ClassFile.this.attributes.add(riaa);
+                ClassFile.this.allAttributes.add(riaa);
             }
 
             @Override public void
             visit(RuntimeVisibleAnnotationsAttribute rvaa) {
                 ClassFile.this.runtimeVisibleAnnotationsAttribute = rvaa;
-                ClassFile.this.attributes.add(rvaa);
+                ClassFile.this.allAttributes.add(rvaa);
             }
 
             @Override public void
             visit(SignatureAttribute sa) {
                 ClassFile.this.signatureAttribute = sa;
-                ClassFile.this.attributes.add(sa);
+                ClassFile.this.allAttributes.add(sa);
             }
 
             @Override public void
             visit(SourceFileAttribute sfa) {
                 ClassFile.this.sourceFileAttribute = sfa;
-                ClassFile.this.attributes.add(sfa);
+                ClassFile.this.allAttributes.add(sfa);
             }
 
             @Override public void
             visit(SyntheticAttribute sa) {
                 ClassFile.this.syntheticAttribute = sa;
-                ClassFile.this.attributes.add(sa);
+                ClassFile.this.allAttributes.add(sa);
             }
 
             @Override public void
             visitOther(Attribute a) {
-                ClassFile.this.attributes.add(a);
+                ClassFile.this.allAttributes.add(a);
+                ClassFile.this.unprocessedAttributes.add(a);
             }
         });
     }
@@ -450,8 +456,9 @@ class ClassFile {
         public String      name;
         public String      descriptor;
 
-        // SUPPRESS CHECKSTYLE JavadocVariable:7
-        public final List<Attribute>                          attributes = new ArrayList<Attribute>();
+        // SUPPRESS CHECKSTYLE JavadocVariable:8
+        public final List<Attribute>                          allAttributes         = new ArrayList<Attribute>();
+        public final List<Attribute>                          unprocessedAttributes = new ArrayList<Attribute>();
         @Nullable public ConstantValueAttribute               constantValueAttribute;
         @Nullable public DeprecatedAttribute                  deprecatedAttribute;
         @Nullable public RuntimeInvisibleAnnotationsAttribute runtimeInvisibleAnnotationsAttribute;
@@ -471,42 +478,43 @@ class ClassFile {
                 @Override public void
                 visit(ConstantValueAttribute cva) {
                     Field.this.constantValueAttribute = cva;
-                    Field.this.attributes.add(cva);
+                    Field.this.allAttributes.add(cva);
                 }
 
                 @Override public void
                 visit(DeprecatedAttribute da) {
                     Field.this.deprecatedAttribute = da;
-                    Field.this.attributes.add(da);
+                    Field.this.allAttributes.add(da);
                 }
 
                 @Override public void
                 visit(RuntimeInvisibleAnnotationsAttribute riaa) {
                     Field.this.runtimeInvisibleAnnotationsAttribute = riaa;
-                    Field.this.attributes.add(riaa);
+                    Field.this.allAttributes.add(riaa);
                 }
 
                 @Override public void
                 visit(RuntimeVisibleAnnotationsAttribute rvaa) {
                     Field.this.runtimeVisibleAnnotationsAttribute = rvaa;
-                    Field.this.attributes.add(rvaa);
+                    Field.this.allAttributes.add(rvaa);
                 }
 
                 @Override public void
                 visit(SignatureAttribute sa) {
                     Field.this.signatureAttribute = sa;
-                    Field.this.attributes.add(sa);
+                    Field.this.allAttributes.add(sa);
                 }
 
                 @Override public void
                 visit(SyntheticAttribute sa) {
                     Field.this.syntheticAttribute = sa;
-                    Field.this.attributes.add(sa);
+                    Field.this.allAttributes.add(sa);
                 }
 
                 @Override public void
                 visitOther(Attribute ai) {
-                    Field.this.attributes.add(ai);
+                    Field.this.allAttributes.add(ai);
+                    Field.this.unprocessedAttributes.add(ai);
                 }
             });
         }
@@ -523,18 +531,19 @@ class ClassFile {
         public String      name;
         public String      descriptor;
 
-        // SUPPRESS CHECKSTYLE JavadocVariableCheck:11
-        public final List<Attribute>                                   attributes = new ArrayList<Attribute>();
-        @Nullable public AnnotationDefaultAttribute                    annotationDefaultAttribute;
-        @Nullable public CodeAttribute                                 codeAttribute;
-        @Nullable public DeprecatedAttribute                           deprecatedAttribute;
-        @Nullable public ExceptionsAttribute                           exceptionsAttribute;
-        @Nullable public RuntimeInvisibleAnnotationsAttribute          runtimeInvisibleAnnotationsAttribute;
-        @Nullable public RuntimeInvisibleParameterAnnotationsAttribute runtimeInvisibleParameterAnnotationsAttribute;
-        @Nullable public RuntimeVisibleAnnotationsAttribute            runtimeVisibleAnnotationsAttribute;
-        @Nullable public RuntimeVisibleParameterAnnotationsAttribute   runtimeVisibleParameterAnnotationsAttribute;
-        @Nullable public SignatureAttribute                            signatureAttribute;
-        @Nullable public SyntheticAttribute                            syntheticAttribute;
+        // SUPPRESS CHECKSTYLE JavadocVariableCheck:12
+        final List<Attribute>                                   allAttributes         = new ArrayList<Attribute>();
+        final List<Attribute>                                   unprocessedAttributes = new ArrayList<Attribute>();
+        @Nullable AnnotationDefaultAttribute                    annotationDefaultAttribute;
+        @Nullable CodeAttribute                                 codeAttribute;
+        @Nullable DeprecatedAttribute                           deprecatedAttribute;
+        @Nullable ExceptionsAttribute                           exceptionsAttribute;
+        @Nullable RuntimeInvisibleAnnotationsAttribute          runtimeInvisibleAnnotationsAttribute;
+        @Nullable RuntimeInvisibleParameterAnnotationsAttribute runtimeInvisibleParameterAnnotationsAttribute;
+        @Nullable RuntimeVisibleAnnotationsAttribute            runtimeVisibleAnnotationsAttribute;
+        @Nullable RuntimeVisibleParameterAnnotationsAttribute   runtimeVisibleParameterAnnotationsAttribute;
+        @Nullable SignatureAttribute                            signatureAttribute;
+        @Nullable SyntheticAttribute                            syntheticAttribute;
 
         public
         Method(DataInputStream dis) throws IOException {
@@ -550,66 +559,75 @@ class ClassFile {
                     @Override public void
                     visit(AnnotationDefaultAttribute ada) {
                         Method.this.annotationDefaultAttribute = ada;
-                        Method.this.attributes.add(ada);
+                        Method.this.allAttributes.add(ada);
                     }
 
                     @Override public void
                     visit(CodeAttribute ca) {
                         Method.this.codeAttribute = ca;
-                        Method.this.attributes.add(ca);
+                        Method.this.allAttributes.add(ca);
                     }
 
                     @Override public void
                     visit(DeprecatedAttribute da) {
                         Method.this.deprecatedAttribute = da;
-                        Method.this.attributes.add(da);
+                        Method.this.allAttributes.add(da);
                     }
 
                     @Override public void
                     visit(ExceptionsAttribute ea) {
                         Method.this.exceptionsAttribute = ea;
-                        Method.this.attributes.add(ea);
+                        Method.this.allAttributes.add(ea);
                     }
 
                     @Override public void
                     visit(RuntimeInvisibleAnnotationsAttribute riaa) {
                         Method.this.runtimeInvisibleAnnotationsAttribute = riaa;
-                        Method.this.attributes.add(riaa);
+                        Method.this.allAttributes.add(riaa);
                     }
 
                     @Override public void
                     visit(RuntimeInvisibleParameterAnnotationsAttribute ripaa) {
                         Method.this.runtimeInvisibleParameterAnnotationsAttribute = ripaa;
-                        Method.this.attributes.add(ripaa);
+                        Method.this.allAttributes.add(ripaa);
                     }
 
                     @Override public void
                     visit(RuntimeVisibleAnnotationsAttribute rvaa) {
                         Method.this.runtimeVisibleAnnotationsAttribute = rvaa;
-                        Method.this.attributes.add(rvaa);
+                        Method.this.allAttributes.add(rvaa);
                     }
 
                     @Override public void
                     visit(RuntimeVisibleParameterAnnotationsAttribute rvpaa) {
                         Method.this.runtimeVisibleParameterAnnotationsAttribute = rvpaa;
-                        Method.this.attributes.add(rvpaa);
+                        Method.this.allAttributes.add(rvpaa);
                     }
 
                     @Override public void
                     visit(SignatureAttribute sa) {
                         Method.this.signatureAttribute = sa;
-                        Method.this.attributes.add(sa);
+                        Method.this.allAttributes.add(sa);
+                    }
+
+                    @Override public void
+                    visit(StackMapTableAttribute smta) {
+
+                        // Treat a "StackMapTable" attribute as an "unprocessed attribute", because we don't
+                        // disassemble it in-line.
+                        super.visit(smta);
                     }
 
                     @Override public void
                     visit(SyntheticAttribute sa) {
                         Method.this.syntheticAttribute = sa;
-                        Method.this.attributes.add(sa);
+                        Method.this.allAttributes.add(sa);
                     }
 
                     @Override public void
                     visitOther(Attribute ai) {
-                        Method.this.attributes.add(ai);
+                        Method.this.allAttributes.add(ai);
+                        Method.this.unprocessedAttributes.add(ai);
                     }
                 });
             } catch (IOException ioe) {
@@ -1440,7 +1458,12 @@ class ClassFile {
         /**
          * All attributes of this {@link CodeAttribute}.
          */
-        public final List<Attribute> attributes = new ArrayList<Attribute>();
+        public final List<Attribute> allAttributes = new ArrayList<Attribute>();
+
+        /**
+         * All unprocessed attributes of this {@link CodeAttribute}.
+         */
+        public final List<Attribute> unprocessedAttributes = new ArrayList<Attribute>();
 
         CodeAttribute(DataInputStream dis, ClassFile cf) throws IOException {
             this.maxStack  = dis.readShort();
@@ -1460,23 +1483,24 @@ class ClassFile {
                 @Override public void
                 visit(LineNumberTableAttribute lnta) {
                     CodeAttribute.this.lineNumberTableAttribute = lnta;
-                    CodeAttribute.this.attributes.add(lnta);
+                    CodeAttribute.this.allAttributes.add(lnta);
                 }
 
                 @Override public void
                 visit(LocalVariableTableAttribute lvta) {
                     CodeAttribute.this.localVariableTableAttribute = lvta;
-                    CodeAttribute.this.attributes.add(lvta);
+                    CodeAttribute.this.allAttributes.add(lvta);
                 }
                 @Override public void
                 visit(LocalVariableTypeTableAttribute lvtta) {
                     CodeAttribute.this.localVariableTypeTableAttribute = lvtta;
-                    CodeAttribute.this.attributes.add(lvtta);
+                    CodeAttribute.this.allAttributes.add(lvtta);
                 }
 
                 @Override public void
                 visitOther(Attribute a) {
-                    CodeAttribute.this.attributes.add(a);
+                    CodeAttribute.this.allAttributes.add(a);
+                    CodeAttribute.this.unprocessedAttributes.add(a);
                 }
             });
         }
@@ -1580,6 +1604,9 @@ class ClassFile {
     public
     class StackMapTableAttribute implements Attribute {
 
+        /**
+         * The {@code entries} array in the {@code StackMapTable} attribute. See JVMS8 4.7.4.
+         */
         final List<StackMapFrame> entries = new ArrayList<StackMapFrame>();
 
         StackMapTableAttribute(DataInputStream dis, ClassFile cf) throws IOException {
@@ -1655,7 +1682,7 @@ class ClassFile {
             case 4: return new LongVariableInfo();
             case 5: return new NullVariableInfo();
             case 6: return new UninitializedThisVariableInfo();
-            case 7: return new ObjectVariableInfo(ClassFile.this.constantPool.get(dis.readShort(), ConstantClassInfo.class));
+            case 7: return new ObjectVariableInfo(ClassFile.this.constantPool.get(dis.readShort(), ConstantClassInfo.class)); // SUPPRESS CHECKSTYLE LineLength
             case 8: return new UninitializedVariableInfo(dis.readShort());
 
             default:
@@ -1667,12 +1694,22 @@ class ClassFile {
         @Override public String getName()                        { return "StackMapTable"; }
     }
 
-    public static
+    /**
+     * Representation of the {@code stack_map_frame} union; see JVMS8 4.7.4.
+     */
+    public abstract static
     class StackMapFrame {
+
+        /**
+         * The {@code offset_delta} value that is implicit to all stack map frames; see JVMS8 4.7.4.
+         */
         final int offsetDelta;
         public StackMapFrame(int offsetDelta) { this.offsetDelta = offsetDelta; }
-}
+    }
 
+    /**
+     * Representation of the {@code same_frame} structure; see JVMS8 4.7.4.
+     */
     public static
     class SameFrame extends StackMapFrame {
         public SameFrame(int offsetDelta) { super(offsetDelta); }
@@ -1680,6 +1717,10 @@ class ClassFile {
         @Override public String
         toString() { return "same_frame"; }
     }
+
+    /**
+     * Representation of the {@code same_locals_1_stack_item_frame} structure; see JVMS8 4.7.4.
+     */
     public static
     class SameLocals1StackItemFrame extends StackMapFrame {
         private final VerificationTypeInfo stack;
@@ -1695,6 +1736,10 @@ class ClassFile {
             return "same_locals_1_stack_item_frame(stack=" + this.stack + ")";
         }
     }
+
+    /**
+     * Representation of the {@code same_locals_1_stack_item_frame_extended} structure; see JVMS8 4.7.4.
+     */
     public static
     class SameLocals1StackItemFrameExtended extends StackMapFrame {
         private final VerificationTypeInfo stack;
@@ -1716,6 +1761,10 @@ class ClassFile {
             );
         }
     }
+
+    /**
+     * Representation of the {@code chop_frame} structure; see JVMS8 4.7.4.
+     */
     public static
     class ChopFrame extends StackMapFrame {
         public ChopFrame(int offsetDelta) { super(offsetDelta); }
@@ -1723,6 +1772,10 @@ class ClassFile {
         @Override public String
         toString() { return "chop_frame"; }
     }
+
+    /**
+     * Representation of the {@code same_frame_extended} structure; see JVMS8 4.7.4.
+     */
     public static
     class SameFrameExtended extends StackMapFrame {
         public SameFrameExtended(int offsetDelta) { super(offsetDelta); }
@@ -1730,20 +1783,29 @@ class ClassFile {
         @Override public String
         toString() { return "same_frame_extended"; }
     }
+
+    /**
+     * Representation of the {@code append_frame} structure; see JVMS8 4.7.4.
+     */
     public static
     class AppendFrame extends StackMapFrame {
         private final VerificationTypeInfo[] locals;
 
-        public AppendFrame(int offsetDelta, VerificationTypeInfo[] locals) {
-        	super(offsetDelta);
-        	this.locals = locals;
-    	}
+        public
+        AppendFrame(int offsetDelta, VerificationTypeInfo[] locals) {
+            super(offsetDelta);
+            this.locals = locals;
+        }
 
         @Override public String
         toString() {
             return "append_frame(stack=" + Arrays.toString(this.locals) + ")";
         }
     }
+
+    /**
+     * Representation of the {@code full_frame} structure; see JVMS8 4.7.4.
+     */
     public static
     class FullFrame extends StackMapFrame {
         private final VerificationTypeInfo[] locals;
@@ -1770,54 +1832,90 @@ class ClassFile {
         }
     }
 
-    interface VerificationTypeInfo {}
+    /**
+     * Representation of the {@code verification_type_info} union; see JVMS8 4.7.4.
+     */
+    public interface VerificationTypeInfo {}
 
+    /**
+     * Representation of the {@code top_variable_info} structure; see JVMS8 4.7.4.
+     */
     public static
     class TopVariableInfo implements VerificationTypeInfo {
-		@Override public String toString() { return "top"; }
+        @Override public String toString() { return "top"; }
     }
 
+    /**
+     * Representation of the {@code integer_variable_info} structure; see JVMS8 4.7.4.
+     */
     public static
     class IntegerVariableInfo implements VerificationTypeInfo {
-    	@Override public String toString() { return "int"; }
+        @Override public String toString() { return "int"; }
     }
 
+    /**
+     * Representation of the {@code float_variable_info} structure; see JVMS8 4.7.4.
+     */
     public static
     class FloatVariableInfo implements VerificationTypeInfo {
-    	@Override public String toString() { return "float"; }
+        @Override public String toString() { return "float"; }
     }
 
+    /**
+     * Representation of the {@code long_variable_info} structure; see JVMS8 4.7.4.
+     */
     public static
     class LongVariableInfo implements VerificationTypeInfo {
-    	@Override public String toString() { return "long"; }
+        @Override public String toString() { return "long"; }
     }
 
+    /**
+     * Representation of the {@code double_variable_info} structure; see JVMS8 4.7.4.
+     */
     public static
     class DoubleVariableInfo implements VerificationTypeInfo {
-    	@Override public String toString() { return "double"; }
+        @Override public String toString() { return "double"; }
     }
 
+    /**
+     * Representation of the {@code null_variable_info} structure; see JVMS8 4.7.4.
+     */
     public static
     class NullVariableInfo implements VerificationTypeInfo {
-    	@Override public String toString() { return "null"; }
+        @Override public String toString() { return "null"; }
     }
 
+    /**
+     * Representation of the {@code uninitialized_this_variable_info} structure; see JVMS8 4.7.4.
+     */
     public static
     class UninitializedThisVariableInfo implements VerificationTypeInfo {
-    	@Override public String toString() { return "uninitializedThis"; }
+        @Override public String toString() { return "uninitializedThis"; }
     }
 
+    /**
+     * Representation of the {@code object_variable_info} structure; see JVMS8 4.7.4.
+     */
     public static
     class ObjectVariableInfo implements VerificationTypeInfo {
-		private final ConstantClassInfo constantClassInfo;
-		public ObjectVariableInfo(ConstantClassInfo constantClassInfo) { this.constantClassInfo = constantClassInfo; }
-		@Override public String toString() { return this.constantClassInfo.toString(); }
+
+        private final ConstantClassInfo constantClassInfo;
+
+        public ObjectVariableInfo(ConstantClassInfo constantClassInfo) { this.constantClassInfo = constantClassInfo; }
+
+        @Override public String toString() { return this.constantClassInfo.toString(); }
     }
 
+    /**
+     * Representation of the {@code uninitialized_variable_info} structure; see JVMS8 4.7.4.
+     */
     public static
     class UninitializedVariableInfo implements VerificationTypeInfo {
+
         private final short offset;
-		public UninitializedVariableInfo(short offset) { this.offset = offset;}
+
+        public UninitializedVariableInfo(short offset) { this.offset = offset; }
+
         @Override public String toString() { return "uninitialized(offset=" + this.offset + ")"; }
     }
 
