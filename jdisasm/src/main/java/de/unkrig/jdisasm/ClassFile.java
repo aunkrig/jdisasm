@@ -531,13 +531,14 @@ class ClassFile {
         public String      name;
         public String      descriptor;
 
-        // SUPPRESS CHECKSTYLE JavadocVariableCheck:12
+        // SUPPRESS CHECKSTYLE JavadocVariableCheck:13
         final List<Attribute>                                   allAttributes         = new ArrayList<Attribute>();
         final List<Attribute>                                   unprocessedAttributes = new ArrayList<Attribute>();
         @Nullable AnnotationDefaultAttribute                    annotationDefaultAttribute;
         @Nullable CodeAttribute                                 codeAttribute;
         @Nullable DeprecatedAttribute                           deprecatedAttribute;
         @Nullable ExceptionsAttribute                           exceptionsAttribute;
+        @Nullable MethodParametersAttribute                     methodParametersAttribute;
         @Nullable RuntimeInvisibleAnnotationsAttribute          runtimeInvisibleAnnotationsAttribute;
         @Nullable RuntimeInvisibleParameterAnnotationsAttribute runtimeInvisibleParameterAnnotationsAttribute;
         @Nullable RuntimeVisibleAnnotationsAttribute            runtimeVisibleAnnotationsAttribute;
@@ -578,6 +579,12 @@ class ClassFile {
                     visit(ExceptionsAttribute ea) {
                         Method.this.exceptionsAttribute = ea;
                         Method.this.allAttributes.add(ea);
+                    }
+
+                    @Override public void
+                    visit(MethodParametersAttribute mpa) {
+                        Method.this.methodParametersAttribute = mpa;
+                        Method.this.allAttributes.add(mpa);
                     }
 
                     @Override public void
@@ -676,6 +683,127 @@ class ClassFile {
     }
 
     /**
+     * @since Java SE 5.0
+     */
+    public static
+    class SourceDebugExtensionAttribute extends UnknownAttribute {
+
+        SourceDebugExtensionAttribute(DataInputStream dis, ClassFile cf) throws IOException {
+            super("SourceDebugExtension", dis, cf);
+        }
+    }
+
+    /**
+     * @since Java SE 8
+     */
+    public static
+    class RuntimeVisibleTypeAnnotationsAttribute extends UnknownAttribute {
+
+        RuntimeVisibleTypeAnnotationsAttribute(DataInputStream dis, ClassFile cf) throws IOException {
+            super("RuntimeVisibleTypeAnnotation", dis, cf);
+        }
+    }
+
+    /**
+     * @since Java SE 8
+     */
+    public static
+    class RuntimeInvisibleTypeAnnotationsAttribute extends UnknownAttribute {
+
+        RuntimeInvisibleTypeAnnotationsAttribute(DataInputStream dis, ClassFile cf) throws IOException {
+            super("RuntimeInvisibleTypeAnnotations", dis, cf);
+        }
+    }
+
+    /**
+     * @see JVMS9 4.7.24
+     * @since Java SE 8
+     */
+    public static
+    class MethodParametersAttribute implements Attribute {
+
+        /**
+         * Representation of an {@code parameter} entry in the {@code MethodParameters_attribute} structure.
+         */
+        public static
+        class Parameter {
+
+            /**
+             * The parameter's name as represented by the {@code name_index} field.
+             */
+            String name;
+
+            /**
+             * The parameter's access flags as represented by the {@code access_flags} field (FINAL, SYNTHETIC and/or
+             * MANDATED).
+             */
+            AccessFlags accessFlags;
+
+            public
+            Parameter(String name, AccessFlags accessFlags) {
+                this.name        = name;
+                this.accessFlags = accessFlags;
+            }
+
+            @Override public String
+            toString() { return this.accessFlags.toString() + this.name; }
+        }
+
+        /**
+         * The parameters' properties as represented by the {@code parameters} field.
+         */
+        final List<Parameter> parameters = new ArrayList<Parameter>();
+
+        MethodParametersAttribute(DataInputStream dis, ClassFile cf) throws IOException {
+            for (int i = dis.readByte(); i > 0; i--) {
+                this.parameters.add(new Parameter(
+                    cf.constantPool.get(dis.readShort(), ConstantUtf8Info.class).bytes,
+                    new AccessFlags(dis.readShort())
+                ));
+            }
+        }
+
+        @Override public void
+        accept(AttributeVisitor visitor) { visitor.visit(this); }
+
+        @Override public String
+        getName() { return "MethodParameters"; }
+    }
+
+    /**
+     * @since Java SE 9
+     */
+    public static
+    class ModuleAttribute extends UnknownAttribute {
+
+        ModuleAttribute(DataInputStream dis, ClassFile cf) throws IOException {
+            super("Module", dis, cf);
+        }
+    }
+
+    /**
+     * @since Java SE 9
+     */
+    public static
+    class ModulePackagesAttribute extends UnknownAttribute {
+
+        ModulePackagesAttribute(DataInputStream dis, ClassFile cf) throws IOException {
+            super("ModulePackages", dis, cf);
+        }
+    }
+
+    /**
+     * @since Java SE 9
+     */
+    public static
+    class ModuleMainClassAttribute extends UnknownAttribute {
+
+        ModuleMainClassAttribute(DataInputStream dis, ClassFile cf) throws IOException {
+            super("ModuleMainClass", dis, cf);
+        }
+    }
+
+    /**
      * Reads a set of attributs and has them accept the <var>visitor</var>.
      */
     final void
@@ -770,33 +898,42 @@ class ClassFile {
         if ("LocalVariableTypeTable".equals(attributeName)) {
             visitor.visit(new LocalVariableTypeTableAttribute(dis, this));
         } else
-//        if ("MethodParameters".equals(attributeName)) {
-//            //...
-//        } else
+        if ("MethodParameters".equals(attributeName)) {
+            visitor.visit(new MethodParametersAttribute(dis, this));
+        } else
+        if ("Module".equals(attributeName)) {
+            visitor.visit(new ModuleAttribute(dis, this));
+        } else
+        if ("ModuleMainClass".equals(attributeName)) {
+            visitor.visit(new ModuleMainClassAttribute(dis, this));
+        } else
+        if ("ModulePackages".equals(attributeName)) {
+            visitor.visit(new ModulePackagesAttribute(dis, this));
+        } else
         if ("RuntimeInvisibleAnnotations".equals(attributeName)) {
             visitor.visit(new RuntimeInvisibleAnnotationsAttribute(dis, this));
         } else
         if ("RuntimeInvisibleParameterAnnotations".equals(attributeName)) {
             visitor.visit(new RuntimeInvisibleParameterAnnotationsAttribute(dis, this));
         } else
-//        if ("RuntimeInvisibleTypeAnnotations".equals(attributeName)) {
-//            //...
-//        } else
+        if ("RuntimeInvisibleTypeAnnotations".equals(attributeName)) {
+            visitor.visit(new RuntimeInvisibleTypeAnnotationsAttribute(dis, this));
+        } else
         if ("RuntimeVisibleAnnotations".equals(attributeName)) {
             visitor.visit(new RuntimeVisibleAnnotationsAttribute(dis, this));
         } else
         if ("RuntimeVisibleParameterAnnotations".equals(attributeName)) {
             visitor.visit(new RuntimeVisibleParameterAnnotationsAttribute(dis, this));
         } else
-//        if ("RuntimeVisibleTypeAnnotations".equals(attributeName)) {
-//            //...
-//        } else
+        if ("RuntimeVisibleTypeAnnotations".equals(attributeName)) {
+            visitor.visit(new RuntimeVisibleTypeAnnotationsAttribute(dis, this));
+        } else
         if ("Signature".equals(attributeName)) {
             visitor.visit(new SignatureAttribute(dis, this));
         } else
-//        if ("SourceDebugExtension".equals(attributeName)) {
-//            //...
-//        } else
+        if ("SourceDebugExtension".equals(attributeName)) {
+            visitor.visit(new SourceDebugExtensionAttribute(dis, this));
+        } else
         if ("SourceFile".equals(attributeName)) {
             visitor.visit(new SourceFileAttribute(dis, this));
         } else
@@ -817,7 +954,7 @@ class ClassFile {
     public
     interface AttributeVisitor {
 
-        // SUPPRESS CHECKSTYLE JavadocMethod:19
+        // SUPPRESS CHECKSTYLE JavadocMethod:20
         void visit(AnnotationDefaultAttribute                    ada);
         void visit(CodeAttribute                                 ca);
         void visit(ConstantValueAttribute                        cva);
@@ -828,6 +965,7 @@ class ClassFile {
         void visit(LineNumberTableAttribute                      lnta);
         void visit(LocalVariableTableAttribute                   lvta);
         void visit(LocalVariableTypeTableAttribute               lvtta);
+        void visit(MethodParametersAttribute                     mpa);
         void visit(RuntimeInvisibleAnnotationsAttribute          riaa);
         void visit(RuntimeInvisibleParameterAnnotationsAttribute ripaa);
         void visit(RuntimeVisibleAnnotationsAttribute            rvaa);
@@ -866,6 +1004,7 @@ class ClassFile {
         @Override public void visit(LineNumberTableAttribute                      lnta)  { this.visitOther(lnta);  }
         @Override public void visit(LocalVariableTableAttribute                   lvta)  { this.visitOther(lvta);  }
         @Override public void visit(LocalVariableTypeTableAttribute               lvtta) { this.visitOther(lvtta); }
+        @Override public void visit(MethodParametersAttribute                     mpa)   { this.visitOther(mpa);   }
         @Override public void visit(RuntimeInvisibleAnnotationsAttribute          riaa)  { this.visitOther(riaa);  }
         @Override public void visit(RuntimeInvisibleParameterAnnotationsAttribute ripaa) { this.visitOther(ripaa); }
         @Override public void visit(RuntimeVisibleAnnotationsAttribute            rvaa)  { this.visitOther(rvaa);  }
@@ -880,7 +1019,7 @@ class ClassFile {
     /**
      * Representation of an attribute with an unknown name.
      */
-    public static final
+    public static
     class UnknownAttribute implements Attribute {
 
         /**

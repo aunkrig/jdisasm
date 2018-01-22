@@ -85,6 +85,8 @@ import de.unkrig.jdisasm.ClassFile.LineNumberTableEntry;
 import de.unkrig.jdisasm.ClassFile.LocalVariableTableAttribute;
 import de.unkrig.jdisasm.ClassFile.LocalVariableTypeTableAttribute;
 import de.unkrig.jdisasm.ClassFile.Method;
+import de.unkrig.jdisasm.ClassFile.MethodParametersAttribute;
+import de.unkrig.jdisasm.ClassFile.MethodParametersAttribute.Parameter;
 import de.unkrig.jdisasm.ClassFile.ParameterAnnotation;
 import de.unkrig.jdisasm.ClassFile.RuntimeInvisibleAnnotationsAttribute;
 import de.unkrig.jdisasm.ClassFile.RuntimeInvisibleParameterAnnotationsAttribute;
@@ -736,6 +738,7 @@ class Disassembler {
                 this.printParameters(
                     method.runtimeInvisibleParameterAnnotationsAttribute,
                     method.runtimeVisibleParameterAnnotationsAttribute,
+                    method.methodParametersAttribute,
                     mts.parameterTypes,
                     method,
                     (short) 1,
@@ -750,6 +753,7 @@ class Disassembler {
                 this.printParameters(
                     method.runtimeInvisibleParameterAnnotationsAttribute,
                     method.runtimeVisibleParameterAnnotationsAttribute,
+                    method.methodParametersAttribute,
                     mts.parameterTypes,
                     method,
                     method.accessFlags.is(STATIC) ? (short) 0 : (short) 1, // firstIndex
@@ -1059,6 +1063,14 @@ class Disassembler {
         }
 
         @Override public void
+        visit(MethodParametersAttribute mpa) {
+            Disassembler.this.println(this.prefix + "MethodParameters:");
+            for (Parameter p : mpa.parameters) {
+                Disassembler.this.println(this.prefix + "  " + p);
+            }
+        }
+
+        @Override public void
         visit(RuntimeInvisibleAnnotationsAttribute riaa) {
             Disassembler.this.println(this.prefix + "RuntimeInvisibleAnnotations:");
             for (Annotation a : riaa.annotations) {
@@ -1160,6 +1172,7 @@ class Disassembler {
     printParameters(
         @Nullable RuntimeInvisibleParameterAnnotationsAttribute ripaa,
         @Nullable RuntimeVisibleParameterAnnotationsAttribute   rvpaa,
+        @Nullable MethodParametersAttribute                     mpa,
         List<TypeSignature>                                     parameterTypes,
         Method                                                  method,
         short                                                   firstIndex,
@@ -1176,6 +1189,11 @@ class Disassembler {
             ? Disassembler.NO_PARAMETER_ANNOTATIONS
             : rvpaa.parameterAnnotations
         ).iterator();
+        Iterator<MethodParametersAttribute.Parameter> ps = (
+            mpa == null
+            ? Collections.<MethodParametersAttribute.Parameter>emptyList()
+            : mpa.parameters
+        ).iterator();
 
         Iterator<TypeSignature> it = parameterTypes.iterator();
         if (it.hasNext()) {
@@ -1188,6 +1206,11 @@ class Disassembler {
                 }
                 if (vpas.hasNext()) {
                     for (Annotation a : vpas.next().annotations) this.print(a + " ");
+                }
+
+                // Parameter access flags (FINAL, SYNTHETIC and/or MANDATED), see JVMS9 4.7.24.
+                if (ps.hasNext()) {
+                    this.print(ps.next().accessFlags.toString());
                 }
 
                 // Parameter type.
@@ -1205,6 +1228,7 @@ class Disassembler {
                 this.print(", ");
             }
         }
+
         this.print(")");
     }
 
@@ -1220,6 +1244,7 @@ class Disassembler {
             return new LocalVariable(null, "this");
         }
 
+        // Compute the method's parameter types from its type signature or descriptor.
         List<TypeSignature> parameterTypes;
         {
             SignatureAttribute  sa  = method.signatureAttribute;
@@ -1231,17 +1256,32 @@ class Disassembler {
             parameterTypes = mts.parameterTypes;
         }
 
-        // Calculate index of first local variable.
-        int firstLocalVariable = firstParameter + parameterTypes.size();
+        // Determine whether the local variable represents a constructor or method parameter, or a "normal" local
+        // variable.
+        int parameterIndex; // -1 means we have a non-parameter local variable.
+        {
+            int plvi = firstParameter; // Parameter's local variable index
+            parameterIndex = -1;
+            for (int pi = 0; pi < parameterTypes.size(); pi++) {
 
-        String defaultName = (
-            localVariableIndex < firstLocalVariable
-            ? "p" + (1 + localVariableIndex - firstParameter)
-            : "v" + (1 + localVariableIndex - firstLocalVariable)
-        );
+                if (plvi == localVariableIndex) {
+                    parameterIndex = pi;
+                    break;
+                }
+
+                TypeSignature pt = parameterTypes.get(pi);
+
+                plvi += pt == SignatureParser.LONG || pt == SignatureParser.DOUBLE ? 2 : 1;
+            }
+        }
+
+        // Compose a nice "default name" for the local variable.
+        String defaultName = parameterIndex != -1 ? "p" + parameterIndex : "v" + localVariableIndex;
 
         CodeAttribute ca = method.codeAttribute;
-        if (ca != null && (localVariableIndex >= firstLocalVariable || this.showVariableNames)) {
+        if (ca != null) {
+
+            // Attempt to determine the local variable's type and name from the "LocalVariableTypeTable" attribute.
             LocalVariableTypeTableAttribute lvtta = ca.localVariableTypeTableAttribute;
             if (lvtta != null) {
                 for (LocalVariableTypeTableAttribute.Entry lvtte : lvtta.entries) {
@@ -1258,6 +1298,7 @@ class Disassembler {
                 }
             }
 
+            // Attempt to determine the local variable's type and name from the "LocalVariableTable" attribute.
             LocalVariableTableAttribute lvta = ca.localVariableTableAttribute;
             if (lvta != null) {
                 for (LocalVariableTableAttribute.Entry lvte : lvta.entries) {
@@ -1275,11 +1316,17 @@ class Disassembler {
             }
         }
 
-        if (localVariableIndex < firstLocalVariable) {
-            return new LocalVariable(parameterTypes.get(localVariableIndex - firstParameter), defaultName);
-        } else {
-            return new LocalVariable(null, defaultName);
+        // Attempt to determine the local variable's name from the method's "MethodParameters" attribute (JVMS9 4.7.24).
+        MethodParametersAttribute mpa = method.methodParametersAttribute;
+        if (parameterIndex != -1 && mpa != null) {
+
+            return new LocalVariable(
+                parameterTypes.get(parameterIndex),                                            // typeSignature
+                this.showVariableNames ? mpa.parameters.get(parameterIndex).name : defaultName // name
+            );
         }
+
+        return new LocalVariable(null, defaultName);
     }
 
     private ClassSignature
