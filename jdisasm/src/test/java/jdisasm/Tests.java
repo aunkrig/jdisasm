@@ -41,7 +41,7 @@ class Tests {
     @Test public void
     testWideLocals() throws IOException {
         String output = Tests.disassemble("target/test-classes/subject/WideLocals.class");
-        AssertRegex.assertFind("(?m)^        iload           \\[int l1\\]$",   output);
+        AssertRegex.assertFind("(?m)^        iload_2         \\[int l1\\]$",   output);
         AssertRegex.assertFind("(?m)^        wide istore     \\[int l270\\]$", output);
     }
 

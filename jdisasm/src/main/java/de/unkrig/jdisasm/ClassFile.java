@@ -244,7 +244,7 @@ class ClassFile {
         remove(FlagType ft) { return (this.value & ft.value) == 0 ? this : new AccessFlags(this.value & ~ft.value); }
 
         /**
-         * @eturn A series of words, in canonical order, separated with one space, and with one trailing space
+         * @return A series of words, in canonical order, separated with one space, and with one trailing space
          */
         @Override public String
         toString() {
@@ -716,7 +716,7 @@ class ClassFile {
     }
 
     /**
-     * @see JVMS9 4.7.24
+     * @see   <a href="https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-4.html#jvms-4.7.24">JVMS9 4.7.24</a>
      * @since Java SE 8
      */
     public static

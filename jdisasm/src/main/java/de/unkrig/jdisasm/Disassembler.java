@@ -338,16 +338,36 @@ class Disassembler {
     setSourcePath(File[] value) { this.sourcePath = value; }
 
     /**
+      * @deprecated Use {@link #setSourcePath(File[])} instead
+      */
+    @Deprecated public void
+    setSourceDirectory(@Nullable File sourceDirectory) {
+        this.setSourcePath(sourceDirectory == null ? new File[0] : new File[] { sourceDirectory });
+    }
+
+    /**
      * @param value Whether to print line numbers in the disassembly (defaults to {@code true})
      */
     public void
     setShowLineNumbers(boolean value) { this.showLineNumbers = value; }
 
     /**
+     * @deprecated Use {@link #setShowLineNumbers(boolean)} instead
+     */
+    @Deprecated public void
+    setHideLines(boolean hideLines) { this.setShowLineNumbers(!hideLines); }
+
+    /**
      * @param value Whether local variable names are resolved in the disassembly (defaults to {@code true})
      */
     public void
     setShowVariableNames(boolean value) { this.showVariableNames = value; }
+
+    /**
+     * @deprecated Use {@link #setShowVariableNames(boolean)} instead
+     */
+    @Deprecated public void
+    setHideVars(boolean hideVars) { this.setShowVariableNames(!hideVars); }
 
     /**
      * @param symbolicLabels Whether use numeric labels ('#123') or symbolic labels /'L12') in the bytecode disassembly
