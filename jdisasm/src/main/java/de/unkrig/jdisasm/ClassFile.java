@@ -1375,7 +1375,7 @@ class ClassFile {
             } catch (SignatureException e) {
                 throw new ClassFileFormatException("Decoding annotation type: " + e.getMessage(), e);
             }
-            for (int i = dis.readShort(); i > 0; --i) {
+            for (int i = dis.readUnsignedShort(); i > 0; --i) {
                 this.elementValuePairs.add(new ElementValuePair(dis, cf));
             }
         }
@@ -1444,7 +1444,7 @@ class ClassFile {
         } else
         if (tag == '[') {
             final List<ElementValue> values = new ArrayList<ElementValue>();
-            for (int i = dis.readShort(); i > 0; --i) {
+            for (int i = dis.readUnsignedShort(); i > 0; --i) {
                 values.add(this.newElementValue(dis, cf));
             }
             return new ElementValue() {
@@ -1537,7 +1537,7 @@ class ClassFile {
         public final List<ConstantClassInfo> exceptionNames = new ArrayList<ConstantClassInfo>();
 
         ExceptionsAttribute(DataInputStream dis, ClassFile cf) throws IOException {
-            for (int i = dis.readShort(); i > 0; --i) {
+            for (int i = dis.readUnsignedShort(); i > 0; --i) {
                 this.exceptionNames.add(cf.constantPool.get(dis.readShort(), ConstantClassInfo.class));
             }
         }
@@ -1612,7 +1612,7 @@ class ClassFile {
             this.code = ClassFile.readByteArray(dis, dis.readInt());
 
             // Exception table.
-            for (short i = dis.readShort(); i > 0; --i) {
+            for (int i = dis.readUnsignedShort(); i > 0; --i) {
                 this.exceptionTable.add(new ExceptionTableEntry(dis, cf));
             }
 
@@ -1691,9 +1691,9 @@ class ClassFile {
         @Nullable public ConstantClassInfo catchType;
 
         ExceptionTableEntry(DataInputStream dis, ClassFile cf) throws IOException {
-            this.startPc   = 0xffff & dis.readShort();
-            this.endPc     = 0xffff & dis.readShort();
-            this.handlerPc = 0xffff & dis.readShort();
+            this.startPc   = dis.readUnsignedShort();
+            this.endPc     = dis.readUnsignedShort();
+            this.handlerPc = dis.readUnsignedShort();
             this.catchType = cf.constantPool.getOptional(dis.readShort(), ConstantClassInfo.class);
         }
 
@@ -1749,7 +1749,7 @@ class ClassFile {
         final List<StackMapFrame> entries = new ArrayList<StackMapFrame>();
 
         StackMapTableAttribute(DataInputStream dis, ClassFile cf) throws IOException {
-            for (int i = dis.readShort(); i > 0; i--) this.entries.add(this.readStackMapFrame(dis));
+            for (int i = dis.readUnsignedShort(); i > 0; i--) this.entries.add(this.readStackMapFrame(dis));
         }
 
         private StackMapFrame
@@ -2072,7 +2072,7 @@ class ClassFile {
         public final List<LineNumberTableEntry> entries = new ArrayList<LineNumberTableEntry>();
 
         LineNumberTableAttribute(DataInputStream dis, ClassFile cf) throws IOException {
-            for (int i = dis.readShort(); i > 0; --i) {
+            for (int i = dis.readUnsignedShort(); i > 0; --i) {
                 this.entries.add(new LineNumberTableEntry(dis));
             }
         }
@@ -2099,8 +2099,8 @@ class ClassFile {
         public int lineNumber;
 
         LineNumberTableEntry(DataInputStream dis) throws IOException {
-            this.startPc    = 0xffff & dis.readShort();
-            this.lineNumber = 0xffff & dis.readShort();
+            this.startPc    = dis.readUnsignedShort();
+            this.lineNumber = dis.readUnsignedShort();
         }
     }
 
@@ -2172,7 +2172,7 @@ class ClassFile {
         public final List<Entry> entries = new ArrayList<Entry>();
 
         LocalVariableTableAttribute(DataInputStream dis, ClassFile cf) throws IOException {
-            for (short i = dis.readShort(); i > 0; --i) {
+            for (int i = dis.readUnsignedShort(); i > 0; --i) {
                 this.entries.add(new Entry(dis, cf));
             }
         }
@@ -2229,8 +2229,8 @@ class ClassFile {
             public final short index;
 
             Entry(DataInputStream dis, ClassFile cf) throws IOException {
-                this.startPC   = 0xffff & dis.readShort();
-                this.length    = 0xffff & dis.readShort();
+                this.startPC   = dis.readUnsignedShort();
+                this.length    = dis.readUnsignedShort();
                 this.name      = cf.constantPool.get(dis.readShort(), ConstantUtf8Info.class).bytes;
                 this.signature = cf.constantPool.get(dis.readShort(), ConstantUtf8Info.class).bytes;
                 this.index     = dis.readShort();
@@ -2245,7 +2245,7 @@ class ClassFile {
         public final List<Entry> entries = new ArrayList<Entry>();
 
         LocalVariableTypeTableAttribute(DataInputStream dis, ClassFile cf) throws IOException {
-            for (short i = dis.readShort(); i > 0; --i) {
+            for (int i = dis.readUnsignedShort(); i > 0; --i) {
                 this.entries.add(new Entry(dis, cf));
             }
         }

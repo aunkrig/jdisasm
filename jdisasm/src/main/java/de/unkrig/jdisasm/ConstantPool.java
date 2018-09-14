@@ -453,7 +453,7 @@ class ConstantPool {
 
         this.signatureParser = signatureParser;
 
-        final int count = 0xffff & dis.readShort();
+        final int count = dis.readUnsignedShort();
 
         // Read the entries into a temporary data structure - this is necessary because there may be forward
         // references.
