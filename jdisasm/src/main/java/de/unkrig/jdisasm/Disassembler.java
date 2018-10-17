@@ -892,17 +892,23 @@ class Disassembler {
     private static String
     toString(InnerClassesAttribute.ClasS c) {
 
-        ConstantClassInfo oci = c.outerClassInfo;
-        ConstantClassInfo ici = c.innerClassInfo;
+        ConstantClassInfo oci   = c.outerClassInfo;
+        ConstantClassInfo ici   = c.innerClassInfo;
+        AccessFlags       icafs = c.innerClassAccessFlags;
 
-        AccessFlags icafs = c.innerClassAccessFlags;
+        // Notice: "c.innerName" is apparently useless; it seems to always equal the last component of the
+        // "c.innerClassInfo.name".
 
         // Hide ABSTRACT and STATIC flags for interfaces.
         if (icafs.is(INTERFACE)) {
             icafs = icafs.remove(ABSTRACT).remove(STATIC);
         }
 
-        return (oci == null ? "[local class]" : oci) + " { " + Disassembler.typeAccessFlagsToString(icafs) + ici + " }";
+        return (
+            oci == null
+            ? "anonymous class " + ici
+            : oci + " { " + Disassembler.typeAccessFlagsToString(icafs) + ici + " }"
+        );
     }
 
     /**
