@@ -44,6 +44,8 @@ class ConstantPool {
      */
     public
     interface ConstantPoolEntry {
+        /** 1 or 2 */
+        int size();
     }
 
     /**
@@ -58,6 +60,9 @@ class ConstantPool {
         public final String name;
 
         public ConstantClassInfo(String name) { this.name = name; }
+
+        @Override public int
+        size() { return 1; }
 
         @Override public String
         toString() {
@@ -91,6 +96,9 @@ class ConstantPool {
             this.clasS       = clasS;
             this.nameAndType = nameAndType;
         }
+
+        @Override public int
+        size() { return 1; }
 
         @Override public String
         toString() {
@@ -161,6 +169,9 @@ class ConstantPool {
             this.nameAndType = nameAndType;
         }
 
+        @Override public int
+        size() { return 1; }
+
         @Override public String
         toString() {
             try {
@@ -193,6 +204,9 @@ class ConstantPool {
         public
         ConstantStringInfo(String string) { this.string = string; }
 
+        @Override public int
+        size() { return 1; }
+
         @Override public String
         toString() { return ConstantPool.stringToJavaLiteral(this.string); }
     }
@@ -212,6 +226,9 @@ class ConstantPool {
         public
         ConstantIntegerInfo(int bytes) { this.bytes = bytes; }
 
+        @Override public int
+        size() { return 1; }
+
         @Override public String
         toString() { return Integer.toString(this.bytes); }
     }
@@ -230,6 +247,9 @@ class ConstantPool {
         public
         ConstantFloatInfo(float bytes) { this.bytes = bytes; }
 
+        @Override public int
+        size() { return 1; }
+
         @Override public String
         toString() { return this.bytes + "F"; }
     }
@@ -247,6 +267,9 @@ class ConstantPool {
 
         public ConstantLongInfo(long bytes) { this.bytes = bytes; }
 
+        @Override public int
+        size() { return 2; }
+
         @Override public String
         toString() { return this.bytes + "L"; }
     }
@@ -263,6 +286,9 @@ class ConstantPool {
         public final double bytes;
 
         public ConstantDoubleInfo(double bytes) { this.bytes = bytes; }
+
+        @Override public int
+        size() { return 2; }
 
         @Override public String
         toString() { return this.bytes + "D"; }
@@ -289,6 +315,9 @@ class ConstantPool {
             this.name       = name;
             this.descriptor = descriptor;
         }
+
+        @Override public int
+        size() { return 1; }
 
         @Override public String
         toString() {
@@ -318,6 +347,9 @@ class ConstantPool {
         public
         ConstantUtf8Info(String bytes) { this.bytes = bytes; }
 
+        @Override public int
+        size() { return 1; }
+
         @Override public String
         toString() { return this.bytes; }
     }
@@ -336,6 +368,9 @@ class ConstantPool {
             this.referenceKind = referenceKind;
             this.reference     = reference;
         }
+
+        @Override public int
+        size() { return 1; }
 
         @Override public String
         toString() {
@@ -369,6 +404,9 @@ class ConstantPool {
             this.descriptor = descriptor;
         }
 
+        @Override public int
+        size() { return 1; }
+
         @Override public String
         toString() {
             try {
@@ -400,6 +438,9 @@ class ConstantPool {
             this.bootstrapMethodAttrIndex = bootstrapMethodAttrIndex;
             this.nameAndType              = nameAndType;
         }
+
+        @Override public int
+        size() { return 1; }
 
         @Override public String
         toString() { return this.bootstrapMethodAttrIndex + ":" + this.nameAndType.name.toString(); }
@@ -504,6 +545,7 @@ class ConstantPool {
             get(short index) {
                 if (ConstantPool.this.entries[0xffff & index] == null) {
                     ConstantPool.this.entries[0xffff & index] = new ConstantPoolEntry() {
+                        @Override public int              size()     { throw new AssertionError(); }
                         @Override @Nullable public String toString() { return null; }
                     }; // To prevent recursion.
                     ConstantPool.this.entries[0xffff & index] = rawEntries[0xffff & index].cook();

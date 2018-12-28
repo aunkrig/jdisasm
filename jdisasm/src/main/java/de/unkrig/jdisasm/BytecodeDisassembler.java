@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Formatter;
 import java.util.HashMap;
@@ -46,11 +47,21 @@ import java.util.TreeMap;
 
 import de.unkrig.commons.nullanalysis.NotNullByDefault;
 import de.unkrig.commons.nullanalysis.Nullable;
+import de.unkrig.jdisasm.ClassFile.AppendFrame;
 import de.unkrig.jdisasm.ClassFile.BootstrapMethodsAttribute.BootstrapMethod;
+import de.unkrig.jdisasm.ClassFile.ChopFrame;
 import de.unkrig.jdisasm.ClassFile.ExceptionTableEntry;
+import de.unkrig.jdisasm.ClassFile.FullFrame;
 import de.unkrig.jdisasm.ClassFile.LineNumberTableAttribute;
 import de.unkrig.jdisasm.ClassFile.LineNumberTableEntry;
 import de.unkrig.jdisasm.ClassFile.Method;
+import de.unkrig.jdisasm.ClassFile.SameFrame;
+import de.unkrig.jdisasm.ClassFile.SameFrameExtended;
+import de.unkrig.jdisasm.ClassFile.SameLocals1StackItemFrame;
+import de.unkrig.jdisasm.ClassFile.SameLocals1StackItemFrameExtended;
+import de.unkrig.jdisasm.ClassFile.StackMapFrame;
+import de.unkrig.jdisasm.ClassFile.StackMapFrameVisitor;
+import de.unkrig.jdisasm.ClassFile.StackMapTableAttribute;
 import de.unkrig.jdisasm.ConstantPool.ConstantClassInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantClassOrFloatOrIntegerOrStringInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantDoubleOrLongInfo;
@@ -59,6 +70,7 @@ import de.unkrig.jdisasm.ConstantPool.ConstantInterfaceMethodrefInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantInterfaceMethodrefOrMethodrefInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantInvokeDynamicInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantMethodrefInfo;
+import de.unkrig.jdisasm.SignatureParser.TypeSignature;
 
 /**
  * Disassembles the bytecode of a class file method.
@@ -70,8 +82,10 @@ class BytecodeDisassembler {
     private final DataInputStream                    dis;
     private final List<ExceptionTableEntry>          exceptionTable;
     @Nullable private final LineNumberTableAttribute lineNumberTableAttribute;
+    @Nullable private final StackMapTableAttribute   stackMapTableAttribute;
     @Nullable private final Map<Integer, String>     sourceLines;
     private final Method                             method;
+    private final TypeSignature[]                    parameterTypes;
     private final Disassembler                       d;
 
     private int                                             instructionOffset;
@@ -87,16 +101,20 @@ class BytecodeDisassembler {
         InputStream                        is,
         List<ExceptionTableEntry>          exceptionTable,
         @Nullable LineNumberTableAttribute lineNumberTableAttribute,
+        @Nullable StackMapTableAttribute   stackMapTableAttribute,
         @Nullable Map<Integer, String>     sourceLines,
         Method                             method,
+        SignatureParser.TypeSignature[]    parameterTypes,
         Disassembler                       d
     ) {
         this.cis                      = new CountingInputStream(is);
         this.dis                      = new DataInputStream(this.cis);
         this.exceptionTable           = exceptionTable;
         this.lineNumberTableAttribute = lineNumberTableAttribute;
+        this.stackMapTableAttribute   = stackMapTableAttribute;
         this.sourceLines              = sourceLines;
         this.method                   = method;
+        this.parameterTypes           = parameterTypes;
         this.d                        = d;
     }
 
@@ -139,6 +157,52 @@ class BytecodeDisassembler {
                     m.put(e.startPc, l);
                 }
                 l.add(e);
+            }
+        }
+
+        // Decode the StackMapTable attribute.
+        Map<Integer, String> stackMap;
+        STACK_MAP_TABLE: {
+            stackMap = new HashMap<Integer, String>();
+
+            StackMapTableAttribute smta = this.stackMapTableAttribute;
+            if (!this.d.printStackMap || smta == null) break STACK_MAP_TABLE;
+
+            final String[] none = new String[0];
+
+            String[] locals = new String[this.parameterTypes.length];
+            for (int i = 0; i < locals.length; i++) locals[i] = this.parameterTypes[i].toString();
+            String[] stack = none;
+            stackMap.put(0, "Locals=" + Arrays.toString(locals) + " Stack=" + Arrays.toString(stack));
+
+            int bytecodeOffset = -1;
+            for (StackMapFrame smf : smta.entries) {
+                bytecodeOffset += 1 + smf.offsetDelta;
+
+                {
+                    final String[] locals_ = locals;
+                    locals = smf.accept(new StackMapFrameVisitor<String[]>() {
+                        @Override public String[] visitSameFrame(SameFrame sf)                                                      { return locals_; }
+                        @Override public String[] visitSameLocals1StackItemFrame(SameLocals1StackItemFrame sl1sif)                  { return locals_; }
+                        @Override public String[] visitSameLocals1StackItemFrameExtended(SameLocals1StackItemFrameExtended sl1sife) { return locals_; }
+                        @Override public String[] visitChopFrame(ChopFrame cf)                                                      { return Arrays.copyOf(locals_, locals_.length - cf.k); }
+                        @Override public String[] visitSameFrameExtended(SameFrameExtended sfe)                                     { return locals_; }
+                        @Override public String[] visitAppendFrame(AppendFrame af)                                                  { return BytecodeDisassembler.concat(locals_, BytecodeDisassembler.this.toStringArray(af.locals)); }
+                        @Override public String[] visitFullFrame(FullFrame ff)                                                      { return BytecodeDisassembler.this.toStringArray(ff.locals); }
+                    });
+                }
+
+                stack = smf.accept(new StackMapFrameVisitor<String[]>() {
+                    @Override public String[] visitSameFrame(SameFrame sf)                                                      { return none; }
+                    @Override public String[] visitSameLocals1StackItemFrame(SameLocals1StackItemFrame sl1sif)                  { return new String[] { String.valueOf(sl1sif.stack) }; }
+                    @Override public String[] visitSameLocals1StackItemFrameExtended(SameLocals1StackItemFrameExtended sl1sife) { return new String[] { String.valueOf(sl1sife.stack) }; }
+                    @Override public String[] visitChopFrame(ChopFrame cf)                                                      { return none; }
+                    @Override public String[] visitSameFrameExtended(SameFrameExtended sfe)                                     { return none; }
+                    @Override public String[] visitAppendFrame(AppendFrame af)                                                  { return none; }
+                    @Override public String[] visitFullFrame(FullFrame ff)                                                      { return BytecodeDisassembler.this.toStringArray(ff.stack); }
+                });
+
+                stackMap.put(bytecodeOffset, "Locals=" + Arrays.toString(locals) + " Stack=" + Arrays.toString(stack));
             }
         }
 
@@ -275,8 +339,31 @@ class BytecodeDisassembler {
                 }
             }
 
+            // Print stack map.
+            PRINT_STACK_FRAME: {
+                String smf = stackMap.get(instructionOffset);
+                if (smf == null) break PRINT_STACK_FRAME;
+
+                pw.println(indentation + "// " + smf);
+            }
+
+            // Print disassembly line.
             pw.println(indentation + text);
         }
+    }
+
+    protected String[]
+    toStringArray(Object[] objects) {
+        String[] result = new String[objects.length];
+        for (int i = 0; i < result.length; i++) result[i] = String.valueOf(objects[i]);
+        return result;
+    }
+
+    private static <T> T[]
+    concat(T[] lhs, T[] rhs) {
+        T[] result = Arrays.copyOf(lhs, lhs.length + rhs.length);
+        System.arraycopy(rhs, 0, result, lhs.length, rhs.length);
+        return result;
     }
 
     /**
@@ -295,7 +382,7 @@ class BytecodeDisassembler {
                 ConstantClassOrFloatOrIntegerOrStringInfo.class
             ).toString();
 
-            if (BytecodeDisassembler.this.d.verbose) t += " (" + (0xffff & index) + ")";
+            if (BytecodeDisassembler.this.d.showClassPoolIndexes) t += " (" + (0xffff & index) + ")";
 
             return t;
         }
@@ -309,7 +396,7 @@ class BytecodeDisassembler {
                 ConstantClassOrFloatOrIntegerOrStringInfo.class
             ).toString();
 
-            if (BytecodeDisassembler.this.d.verbose) t += " (" + (0xffff & index) + ")";
+            if (BytecodeDisassembler.this.d.showClassPoolIndexes) t += " (" + (0xffff & index) + ")";
 
             return t;
         }
@@ -323,7 +410,7 @@ class BytecodeDisassembler {
                 ConstantDoubleOrLongInfo.class
             ).toString();
 
-            if (BytecodeDisassembler.this.d.verbose) t += " (" + (0xffff & index) + ")";
+            if (BytecodeDisassembler.this.d.showClassPoolIndexes) t += " (" + (0xffff & index) + ")";
 
             return t;
         }
@@ -345,7 +432,7 @@ class BytecodeDisassembler {
                 + fr.nameAndType.name.bytes
             );
 
-            if (BytecodeDisassembler.this.d.verbose) t += " (" + (0xffff & index) + ")";
+            if (BytecodeDisassembler.this.d.showClassPoolIndexes) t += " (" + (0xffff & index) + ")";
 
             return t;
         }
@@ -364,7 +451,7 @@ class BytecodeDisassembler {
                 mr.nameAndType.name.bytes
             );
 
-            if (BytecodeDisassembler.this.d.verbose) t += " (" + (0xffff & index) + ")";
+            if (BytecodeDisassembler.this.d.showClassPoolIndexes) t += " (" + (0xffff & index) + ")";
 
             return t;
         }
@@ -386,7 +473,7 @@ class BytecodeDisassembler {
                 imr.nameAndType.name.bytes
             );
 
-            if (BytecodeDisassembler.this.d.verbose) t += " (" + (0xffff & index) + ")";
+            if (BytecodeDisassembler.this.d.showClassPoolIndexes) t += " (" + (0xffff & index) + ")";
 
             return t;
         }
@@ -407,7 +494,7 @@ class BytecodeDisassembler {
                 imromr.nameAndType.name.bytes
             );
 
-            if (BytecodeDisassembler.this.d.verbose) t += " (" + (0xffff & index) + ")";
+            if (BytecodeDisassembler.this.d.showClassPoolIndexes) t += " (" + (0xffff & index) + ")";
 
             return t;
         }
@@ -422,7 +509,7 @@ class BytecodeDisassembler {
                 ConstantClassInfo.class
             ).toString();
 
-            if (BytecodeDisassembler.this.d.verbose) t += " (" + (0xffff & index) + ")";
+            if (BytecodeDisassembler.this.d.showClassPoolIndexes) t += " (" + (0xffff & index) + ")";
 
             return t;
         }

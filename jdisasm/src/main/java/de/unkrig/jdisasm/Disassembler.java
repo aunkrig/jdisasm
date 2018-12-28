@@ -140,10 +140,13 @@ class Disassembler {
      */
     private PrintWriter pw = new PrintWriter(System.out);
 
-    /**
-     * @see #setVerbose
-     */
-    boolean verbose;
+    boolean showClassPoolIndexes;
+
+    boolean dumpConstantPool;
+
+    boolean printAllAttributes;
+
+    boolean printStackMap;
 
     /**
      * An empty array means "do not attempt to find the source file".
@@ -325,10 +328,40 @@ class Disassembler {
     }
 
     /**
-     * Whether to include a constant pool dump, constant pool indexes, and hex dumps of all attributes in the output.
+     * Equivalent to "--show-class-pool-indexes true --constant-pool-dump true --print-all-attributes true
+     * --print-stack-map true".
      */
     public void
-    setVerbose(boolean verbose) { this.verbose = verbose; }
+    setVerbose(boolean verbose) {
+        this.setShowClassPoolIndexes(verbose);
+        this.setConstantPoolDump(verbose);
+        this.setPrintAllAttributes(verbose);
+        this.setPrintStackMap(verbose);
+    }
+
+    /**
+     * Whether to print constant pool indexes in the output.
+     */
+    public void
+    setShowClassPoolIndexes(boolean showClassPoolIndexes) { this.showClassPoolIndexes = showClassPoolIndexes; }
+
+    /**
+     * Whether to print the entire constant pool in the output.
+     */
+    public void
+    setConstantPoolDump(boolean dumpConstantPool) { this.dumpConstantPool = dumpConstantPool; }
+
+    /**
+     * Whether to print all attributes (otherwise only the unprocessed attributes).
+     */
+    public void
+    setPrintAllAttributes(boolean printAllAttributes) { this.printAllAttributes = printAllAttributes; }
+
+    /**
+     * Whether to print stack map frames interleaved with bytecode disassembls.
+     */
+    public void
+    setPrintStackMap(boolean printStackMap) { this.printStackMap = printStackMap; }
 
     /**
      * Where to look for source files; an empty array disables source file loading. Source file loading is disabled by
@@ -568,14 +601,14 @@ class Disassembler {
         this.println(" {");
 
         // Dump the constant pool.
-        if (this.verbose) {
+        if (this.dumpConstantPool) {
             this.println();
             this.println("    // Constant pool dump:");
             ConstantPool cp = cf.constantPool;
-            for (int i = 0; i < cp.getSize(); i++) {
-                ConstantPoolEntry constantPoolEntry = cp.getOptional((short) i, ConstantPoolEntry.class);
-                if (constantPoolEntry == null) continue;
+            for (int i = 1; i < cp.getSize();) {
+                ConstantPoolEntry constantPoolEntry = cp.get((short) i, ConstantPoolEntry.class);
                 this.println("    //   #" + i + ": " + constantPoolEntry.toString());
+                i += constantPoolEntry.size();
             }
         }
 
@@ -811,8 +844,10 @@ class Disassembler {
                             new ByteArrayInputStream(ca.code),
                             ca.exceptionTable,
                             ca.lineNumberTableAttribute,
+                            ca.stackMapTableAttribute,
                             sourceLines,
                             method,
+                            mts.parameterTypes.toArray(new SignatureParser.TypeSignature[mts.parameterTypes.size()]),
                             this
                         ).disassembleBytecode(this.pw);
                     } catch (IOException ignored) {
@@ -921,7 +956,7 @@ class Disassembler {
         String           prefix,
         AttributeContext context
     ) {
-        List<Attribute> tmp = this.verbose ? allAttributes : unprocessedAttributes;
+        List<Attribute> tmp = this.printAllAttributes ? allAttributes : unprocessedAttributes;
 
         if (tmp.isEmpty()) return;
 
@@ -933,7 +968,7 @@ class Disassembler {
             compare(Attribute a1, Attribute a2) { return a1.getName().compareTo(a2.getName()); }
         });
 
-        this.println(prefix + (this.verbose ? "All attributes:" : "Unprocessed attributes:"));
+        this.println(prefix + (this.printAllAttributes ? "All attributes:" : "Unprocessed attributes:"));
         PrintAttributeVisitor visitor = new PrintAttributeVisitor(prefix + "  ", context);
         for (Attribute a : tmp) a.accept(visitor);
     }

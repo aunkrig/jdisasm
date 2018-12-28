@@ -1595,6 +1595,11 @@ class ClassFile {
         @Nullable public LineNumberTableAttribute lineNumberTableAttribute;
 
         /**
+         * The <var>Code</var> attribute's optional <var>StackMapTable</var> attribute.
+         */
+        @Nullable public StackMapTableAttribute stackMapTableAttribute;
+
+        /**
          * All attributes of this {@link CodeAttribute}.
          */
         public final List<Attribute> allAttributes = new ArrayList<Attribute>();
@@ -1634,6 +1639,12 @@ class ClassFile {
                 visit(LocalVariableTypeTableAttribute lvtta) {
                     CodeAttribute.this.localVariableTypeTableAttribute = lvtta;
                     CodeAttribute.this.allAttributes.add(lvtta);
+                }
+
+                @Override public void
+                visit(StackMapTableAttribute smta) {
+                    CodeAttribute.this.stackMapTableAttribute = smta;
+                    CodeAttribute.this.allAttributes.add(smta);
                 }
 
                 @Override public void
@@ -1766,7 +1777,7 @@ class ClassFile {
             case 248:
             case 249:
             case 250:
-                return new ChopFrame(dis.readShort());
+                return new ChopFrame(dis.readShort(), 251 - frameType);
 
             case 251:
                 return new SameFrameExtended(dis.readShort());
@@ -1843,7 +1854,28 @@ class ClassFile {
          * The {@code offset_delta} value that is implicit to all stack map frames; see JVMS8 4.7.4.
          */
         final int offsetDelta;
+
         public StackMapFrame(int offsetDelta) { this.offsetDelta = offsetDelta; }
+
+        /**
+         * Invokes the "right" {@code visit...()} method of the {@link StackMapFrameVisitor}.
+         */
+        public abstract <T> T accept(StackMapFrameVisitor<T> smfv);
+    }
+
+    /**
+     * @param <T> The return type of {@link StackMapFrame#accept(StackMapFrameVisitor)}
+     * @see       StackMapFrame#accept(StackMapFrameVisitor)
+     */
+    public
+    interface StackMapFrameVisitor<T> {
+        T visitSameFrame(SameFrame sf); // SUPPRESS CHECKSTYLE JavadocMethod:6
+        T visitSameLocals1StackItemFrame(SameLocals1StackItemFrame sl1sif);
+        T visitSameLocals1StackItemFrameExtended(SameLocals1StackItemFrameExtended sl1sife);
+        T visitChopFrame(ChopFrame cf);
+        T visitSameFrameExtended(SameFrameExtended sfe);
+        T visitAppendFrame(AppendFrame af);
+        T visitFullFrame(FullFrame ff);
     }
 
     /**
@@ -1852,6 +1884,9 @@ class ClassFile {
     public static
     class SameFrame extends StackMapFrame {
         public SameFrame(int offsetDelta) { super(offsetDelta); }
+
+        @Override public <T> T
+        accept(StackMapFrameVisitor<T> smfv) { return smfv.visitSameFrame(this); }
 
         @Override public String
         toString() { return "same_frame"; }
@@ -1862,13 +1897,16 @@ class ClassFile {
      */
     public static
     class SameLocals1StackItemFrame extends StackMapFrame {
-        private final VerificationTypeInfo stack;
+        public final VerificationTypeInfo stack;
 
         public
         SameLocals1StackItemFrame(int offsetDelta, VerificationTypeInfo stack) {
             super(offsetDelta);
             this.stack = stack;
         }
+
+        @Override public <T> T
+        accept(StackMapFrameVisitor<T> smfv) { return smfv.visitSameLocals1StackItemFrame(this); }
 
         @Override public String
         toString() {
@@ -1881,13 +1919,16 @@ class ClassFile {
      */
     public static
     class SameLocals1StackItemFrameExtended extends StackMapFrame {
-        private final VerificationTypeInfo stack;
+        public final VerificationTypeInfo stack;
 
         public
         SameLocals1StackItemFrameExtended(int offsetDelta, VerificationTypeInfo stack) {
             super(offsetDelta);
             this.stack = stack;
         }
+
+        @Override public <T> T
+        accept(StackMapFrameVisitor<T> smfv) { return smfv.visitSameLocals1StackItemFrameExtended(this); }
 
         @Override public String
         toString() {
@@ -1906,7 +1947,13 @@ class ClassFile {
      */
     public static
     class ChopFrame extends StackMapFrame {
-        public ChopFrame(int offsetDelta) { super(offsetDelta); }
+        public final int k;
+
+        public
+        ChopFrame(int offsetDelta, int k) { super(offsetDelta); this.k = k; }
+
+        @Override public <T> T
+        accept(StackMapFrameVisitor<T> smfv) { return smfv.visitChopFrame(this); }
 
         @Override public String
         toString() { return "chop_frame"; }
@@ -1917,7 +1964,12 @@ class ClassFile {
      */
     public static
     class SameFrameExtended extends StackMapFrame {
-        public SameFrameExtended(int offsetDelta) { super(offsetDelta); }
+
+        public
+        SameFrameExtended(int offsetDelta) { super(offsetDelta); }
+
+        @Override public <T> T
+        accept(StackMapFrameVisitor<T> smfv) { return smfv.visitSameFrameExtended(this); }
 
         @Override public String
         toString() { return "same_frame_extended"; }
@@ -1928,7 +1980,7 @@ class ClassFile {
      */
     public static
     class AppendFrame extends StackMapFrame {
-        private final VerificationTypeInfo[] locals;
+        public final VerificationTypeInfo[] locals;
 
         public
         AppendFrame(int offsetDelta, VerificationTypeInfo[] locals) {
@@ -1936,9 +1988,12 @@ class ClassFile {
             this.locals = locals;
         }
 
+        @Override public <T> T
+        accept(StackMapFrameVisitor<T> smfv) { return smfv.visitAppendFrame(this); }
+
         @Override public String
         toString() {
-            return "append_frame(stack=" + Arrays.toString(this.locals) + ")";
+            return "append_frame(locals=" + Arrays.toString(this.locals) + ")";
         }
     }
 
@@ -1947,8 +2002,8 @@ class ClassFile {
      */
     public static
     class FullFrame extends StackMapFrame {
-        private final VerificationTypeInfo[] locals;
-        private final VerificationTypeInfo[] stack;
+        public final VerificationTypeInfo[] locals;
+        public final VerificationTypeInfo[] stack;
 
         public
         FullFrame(int offsetDelta, VerificationTypeInfo[] locals, VerificationTypeInfo[] stack) {
@@ -1956,6 +2011,9 @@ class ClassFile {
             this.locals = locals;
             this.stack  = stack;
         }
+
+        @Override public <T> T
+        accept(StackMapFrameVisitor<T> smfv) { return smfv.visitFullFrame(this); }
 
         @Override public String
         toString() {
