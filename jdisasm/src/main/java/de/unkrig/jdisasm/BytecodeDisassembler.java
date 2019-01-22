@@ -182,7 +182,7 @@ class BytecodeDisassembler {
                 {
                     final String[] locals_ = locals;
                     locals = smf.accept(new StackMapFrameVisitor<String[]>() {
-                        @Override public String[] visitSameFrame(SameFrame sf)                                                      { return locals_; }
+                        @Override public String[] visitSameFrame(SameFrame sf)                                                      { return locals_; } // SUPPRESS CHECKSTYLE LineLength:6
                         @Override public String[] visitSameLocals1StackItemFrame(SameLocals1StackItemFrame sl1sif)                  { return locals_; }
                         @Override public String[] visitSameLocals1StackItemFrameExtended(SameLocals1StackItemFrameExtended sl1sife) { return locals_; }
                         @Override public String[] visitChopFrame(ChopFrame cf)                                                      { return Arrays.copyOf(locals_, locals_.length - cf.k); }
@@ -193,7 +193,7 @@ class BytecodeDisassembler {
                 }
 
                 stack = smf.accept(new StackMapFrameVisitor<String[]>() {
-                    @Override public String[] visitSameFrame(SameFrame sf)                                                      { return none; }
+                    @Override public String[] visitSameFrame(SameFrame sf)                                                      { return none; } // SUPPRESS CHECKSTYLE LineLength:6
                     @Override public String[] visitSameLocals1StackItemFrame(SameLocals1StackItemFrame sl1sif)                  { return new String[] { String.valueOf(sl1sif.stack) }; }
                     @Override public String[] visitSameLocals1StackItemFrameExtended(SameLocals1StackItemFrameExtended sl1sife) { return new String[] { String.valueOf(sl1sife.stack) }; }
                     @Override public String[] visitChopFrame(ChopFrame cf)                                                      { return none; }
