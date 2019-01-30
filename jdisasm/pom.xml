@@ -20,12 +20,12 @@
 		<dependency>
 			<groupId>de.unkrig.commons</groupId>
 			<artifactId>commons-nullanalysis</artifactId>
-			<version>1.2.14-SNAPSHOT</version>
+			<version>1.2.13</version>
 		</dependency>
 		<dependency>
 			<groupId>de.unkrig.commons</groupId>
 			<artifactId>commons-junit4</artifactId>
-			<version>1.2.14-SNAPSHOT</version>
+			<version>1.2.13</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
