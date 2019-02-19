@@ -546,7 +546,7 @@ class ConstantPool {
                 if (ConstantPool.this.entries[0xffff & index] == null) {
                     ConstantPool.this.entries[0xffff & index] = new ConstantPoolEntry() {
                         @Override public int              size()     { throw new AssertionError(); }
-                        @Override @Nullable public String toString() { return null; }
+                        @Override @Nullable public String toString() { return null;                }
                     }; // To prevent recursion.
                     ConstantPool.this.entries[0xffff & index] = rawEntries[0xffff & index].cook();
                 }

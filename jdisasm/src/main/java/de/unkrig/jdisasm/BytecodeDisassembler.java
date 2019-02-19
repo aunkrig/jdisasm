@@ -188,7 +188,7 @@ class BytecodeDisassembler {
                         @Override public String[] visitChopFrame(ChopFrame cf)                                                      { return Arrays.copyOf(finalLocals, finalLocals.length - cf.k);                                        }
                         @Override public String[] visitSameFrameExtended(SameFrameExtended sfe)                                     { return finalLocals;                                                                                  }
                         @Override public String[] visitAppendFrame(AppendFrame af)                                                  { return BytecodeDisassembler.concat(finalLocals, BytecodeDisassembler.this.toStringArray(af.locals)); }
-                        @Override public String[] visitFullFrame(FullFrame ff)                                                      { return BytecodeDisassembler.this.toStringArray(ff.locals); }
+                        @Override public String[] visitFullFrame(FullFrame ff)                                                      { return BytecodeDisassembler.this.toStringArray(ff.locals);                                           }
                     });
                 }
 

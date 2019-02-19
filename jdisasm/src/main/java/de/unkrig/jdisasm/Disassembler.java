@@ -408,9 +408,9 @@ class Disassembler {
     public void
     setSymbolicLabels(boolean symbolicLabels) { this.symbolicLabels = symbolicLabels; }
 
-    private void print(String s)                       { this.pw.print(s); }
-    private void println()                             { this.pw.println(); }
-    private void println(String s)                     { this.pw.println(s); }
+    private void print(String s)                       { this.pw.print(s);             }
+    private void println()                             { this.pw.println();            }
+    private void println(String s)                     { this.pw.println(s);           }
     private void printf(String format, Object... args) { this.pw.printf(format, args); }
 
     /**

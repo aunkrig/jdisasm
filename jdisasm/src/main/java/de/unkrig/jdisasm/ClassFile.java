@@ -1039,7 +1039,7 @@ class ClassFile {
         }
 
         @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this); }
-        @Override public String getName()                        { return this.name; }
+        @Override public String getName()                        { return this.name;    }
     }
 
     /**
@@ -1050,7 +1050,7 @@ class ClassFile {
         public SyntheticAttribute(DataInputStream dis, ClassFile cf) {}
 
         @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this); }
-        @Override public String getName()                        { return "Synthetic"; }
+        @Override public String getName()                        { return "Synthetic";  }
     }
 
     /**
@@ -1124,7 +1124,7 @@ class ClassFile {
             }
         }
 
-        @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this); }
+        @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this);   }
         @Override public String getName()                        { return "InnerClasses"; }
     }
 
@@ -1150,7 +1150,7 @@ class ClassFile {
             }
         }
 
-        @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this); }
+        @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this);                }
         @Override public String getName()                        { return "RuntimeVisibleAnnotations"; }
     }
 
@@ -1208,7 +1208,7 @@ class ClassFile {
             }
         }
 
-        @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this); }
+        @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this);                         }
         @Override public String getName()                        { return "RuntimeVisibleParameterAnnotations"; }
     }
 
@@ -1245,7 +1245,7 @@ class ClassFile {
             this.defaultValue = ClassFile.this.newElementValue(dis, cf);
         }
 
-        @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this); }
+        @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this);        }
         @Override public String getName()                        { return "AnnotationDefault"; }
     }
 
@@ -1268,7 +1268,7 @@ class ClassFile {
             }
         }
 
-        @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this); }
+        @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this);       }
         @Override public String getName()                        { return "BootstrapMethods"; }
 
         /**
@@ -1492,7 +1492,7 @@ class ClassFile {
         }
 
         @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this); }
-        @Override public String getName()                        { return "Signature"; }
+        @Override public String getName()                        { return "Signature";  }
     }
 
     /**
@@ -1518,7 +1518,7 @@ class ClassFile {
             this.method = cf.constantPool.getOptional(dis.readShort(), ConstantNameAndTypeInfo.class);
         }
 
-        @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this); }
+        @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this);      }
         @Override public String getName()                        { return "EnclosingMethod"; }
     }
 
@@ -1656,7 +1656,7 @@ class ClassFile {
         }
 
         @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this); }
-        @Override public String getName()                        { return "Code"; }
+        @Override public String getName()                        { return "Code";       }
     }
 
     /**
@@ -1840,7 +1840,7 @@ class ClassFile {
             }
         }
 
-        @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this); }
+        @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this);    }
         @Override public String getName()                        { return "StackMapTable"; }
     }
 
@@ -2135,7 +2135,7 @@ class ClassFile {
             }
         }
 
-        @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this); }
+        @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this);      }
         @Override public String getName()                        { return "LineNumberTable"; }
     }
 
@@ -2235,7 +2235,7 @@ class ClassFile {
             }
         }
 
-        @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this); }
+        @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this);         }
         @Override public String getName()                        { return "LocalVariableTable"; }
     }
 
@@ -2308,7 +2308,7 @@ class ClassFile {
             }
         }
 
-        @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this); }
+        @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this);             }
         @Override public String getName()                        { return "LocalVariableTypeTable"; }
     }
 
@@ -2335,7 +2335,7 @@ class ClassFile {
             );
         }
 
-        @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this); }
+        @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this);    }
         @Override public String getName()                        { return "ConstantValue"; }
     }
 
