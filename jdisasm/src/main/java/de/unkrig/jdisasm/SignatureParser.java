@@ -76,7 +76,7 @@ class SignatureParser {
         }
     };
 
-    private Options options = SignatureParser.DEFAULT_OPTIONS;
+    private Options options = SignatureParser.DEFAULT_OPTIONS; // Initialize early to avoid an NPE!
 
     public
     SignatureParser() {}
