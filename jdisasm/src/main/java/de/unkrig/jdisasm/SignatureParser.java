@@ -76,15 +76,13 @@ class SignatureParser {
         }
     };
 
-    private final Options options;
+    private Options options = SignatureParser.DEFAULT_OPTIONS;
 
     public
-    SignatureParser() { this(SignatureParser.DEFAULT_OPTIONS); }
+    SignatureParser() {}
 
     public
-    SignatureParser(Options options) {
-        this.options = options;
-    }
+    SignatureParser(Options options) { this.options = options; }
 
     /**
      * Decodes a 'class signature' as defined in JVMS7 4.3.4 / JVMS8 4.7.9.1.
@@ -461,7 +459,6 @@ class SignatureParser {
         toString() {
 
             String packageNamePrefix = this.packageSpecifier.replace('/', '.');
-
             StringBuilder sb = (
                 new StringBuilder()
                 .append(this.options.beautifyPackageNamePrefix(packageNamePrefix))
@@ -896,7 +893,15 @@ class SignatureParser {
         }
 
         List<SimpleClassTypeSignature> ss = new ArrayList<SignatureParser.SimpleClassTypeSignature>();
-        while (scs.peekRead('.')) ss.add(this.parseSimpleClassTypeSignature(scs));
+        while (scs.peekRead('.')) {
+
+            final String ir = SignatureParser.parseIdentifierRest(scs);
+
+            List<TypeArgument> ta = new ArrayList<SignatureParser.TypeArgument>();
+            if (scs.peekRead('<')) while (!scs.peekRead('>')) ta.add(this.parseTypeArgument(scs));
+
+            ss.add(new SimpleClassTypeSignature(ir, ta));
+        }
 
         scs.read(';');
 
@@ -908,6 +913,22 @@ class SignatureParser {
         char c = scs.read();
         if (!Character.isJavaIdentifierStart(c)) {
             throw new SignatureException("Identifier expected instead of '" + c + "'");
+        }
+        StringBuilder sb = new StringBuilder().append(c);
+        for (;;) {
+            if (Character.isJavaIdentifierPart(scs.peek())) {
+                sb.append(scs.read());
+            } else {
+                return sb.toString();
+            }
+        }
+    }
+
+    private static String
+    parseIdentifierRest(StringCharStream scs) throws EOFException, SignatureException {
+        char c = scs.read();
+        if (!Character.isJavaIdentifierPart(c)) {
+            throw new SignatureException("Identifier rest expected instead of '" + c + "'");
         }
         StringBuilder sb = new StringBuilder().append(c);
         for (;;) {
@@ -983,18 +1004,6 @@ class SignatureParser {
     throws EOFException, UnexpectedCharacterException, SignatureException {
         scs.read('[');
         return new ArrayTypeSignature(this.parseTypeSignature(scs));
-    }
-
-    private SimpleClassTypeSignature
-    parseSimpleClassTypeSignature(StringCharStream scs)
-    throws EOFException, SignatureException, UnexpectedCharacterException {
-
-        final String scn = SignatureParser.parseIdentifier(scs);
-
-        List<TypeArgument> ta = new ArrayList<SignatureParser.TypeArgument>();
-        if (scs.peekRead('<')) while (!scs.peekRead('>')) ta.add(this.parseTypeArgument(scs));
-
-        return new SimpleClassTypeSignature(scn, ta);
     }
 
     private TypeArgument
