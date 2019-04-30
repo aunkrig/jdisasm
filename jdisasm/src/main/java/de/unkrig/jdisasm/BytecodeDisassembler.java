@@ -669,6 +669,25 @@ class BytecodeDisassembler {
             return sb.toString();
         }
 
+        /**
+         * E.g.
+         * <pre>
+         * REF_invokeStatic:java.lang.invoke.LambdaMetafactory:::java.lang.invoke.LambdaMetafactory.metafactory
+         *( // BootstrapMethod.methodHandle
+         *    java.lang.invoke.MethodHandles$Lookup,
+         *    String,
+         *    java.lang.invoke.MethodType,
+         *    java.lang.invoke.MethodType,
+         *    java.lang.invoke.MethodHandle,
+         *    java.lang.invoke.MethodType
+         * ) => java.lang.invoke.CallSite( // BootstrapMethod.bootstrapArguments
+         *    (),
+         *    REF_invokeStatic:pkg.foo5.Main:::pkg.foo5.Main.lambda$0(),
+         *    ()
+         * ).
+         * run : () => Runnable       cidy.nameAndType
+         * </pre>
+         */
         @Override public String
         visitDynamicCallsite(OperandKind operandType) throws IOException {
 
@@ -678,17 +697,17 @@ class BytecodeDisassembler {
                 throw new RuntimeException("'invokevirtual' pad byte is not zero");
             }
 
-            BootstrapMethod bm = BytecodeDisassembler.this.method.getBootstrapMethodsAttribute().bootstrapMethods.get(
-                BytecodeDisassembler.this.method.getClassFile().constantPool.get(
-                    index,
-                    ConstantInvokeDynamicInfo.class
-                ).bootstrapMethodAttrIndex
-            );
-
-            return bm + "." + BytecodeDisassembler.this.method.getClassFile().constantPool.get(
+            ConstantInvokeDynamicInfo
+            cidy = BytecodeDisassembler.this.method.getClassFile().constantPool.get(
                 index,
                 ConstantInvokeDynamicInfo.class
-            ).nameAndType;
+            );
+            BootstrapMethod
+            bm = BytecodeDisassembler.this.method.getBootstrapMethodsAttribute().bootstrapMethods.get(
+                cidy.bootstrapMethodAttrIndex
+            );
+
+            return bm + "." + cidy.nameAndType;
         }
     };
 
