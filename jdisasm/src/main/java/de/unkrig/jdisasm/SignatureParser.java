@@ -459,6 +459,7 @@ class SignatureParser {
         toString() {
 
             String packageNamePrefix = this.packageSpecifier.replace('/', '.');
+
             StringBuilder sb = (
                 new StringBuilder()
                 .append(this.options.beautifyPackageNamePrefix(packageNamePrefix))
