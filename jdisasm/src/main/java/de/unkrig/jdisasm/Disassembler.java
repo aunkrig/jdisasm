@@ -898,7 +898,6 @@ class Disassembler {
             // Print DEPRECATED notice.
             if (field.deprecatedAttribute != null) this.println("    /** @deprecated */");
 
-
             // Print field access flags, type, name and initializer.
             {
                 SignatureAttribute sa = field.signatureAttribute;
