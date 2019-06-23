@@ -1864,8 +1864,8 @@ class ClassFile {
     }
 
     /**
-     * @param <T> The return type of {@link StackMapFrame#accept(StackMapFrameVisitor)}
-     * @see       StackMapFrame#accept(StackMapFrameVisitor)
+     * @param <T> The return type of {@link StackMapFrame#accept(ClassFile.StackMapFrameVisitor)}
+     * @see       StackMapFrame#accept(ClassFile.StackMapFrameVisitor)
      */
     public
     interface StackMapFrameVisitor<T> {
