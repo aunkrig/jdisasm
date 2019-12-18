@@ -163,6 +163,8 @@ class SignatureParser {
 
     /**
      * Decodes a 'method descriptor' as defined in JVMS[78] 4.3.3.
+     *
+     * @return E.g. {@code "(Object[]) => java.util.stream.Stream"} or {@code "join()"} (void method)
      */
     public MethodTypeSignature
     decodeMethodDescriptor(String s) throws SignatureException {
