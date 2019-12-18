@@ -104,14 +104,14 @@ class ConstantPool {
         toString() {
             try {
                 return (
-                    this.clasS.name
-                    + "::"
-                    + ConstantPool.this.signatureParser.decodeFieldDescriptor(this.nameAndType.descriptor.toString())
+                    ConstantPool.this.signatureParser.decodeFieldDescriptor(this.nameAndType.descriptor.bytes)
                     + " "
-                    + this.nameAndType.name
+                    + ConstantPool.beautifyTypeName(this.clasS.name)
+                    + "."
+                    + this.nameAndType.name.bytes
                 );
             } catch (SignatureException e) {
-                return this.clasS.name + "::" + this.nameAndType;
+                return this.nameAndType.descriptor.bytes + " " + ConstantPool.beautifyTypeName(this.clasS.name) + "." + this.nameAndType.name.bytes;
             }
         }
     }
@@ -137,13 +137,6 @@ class ConstantPool {
         public
         ConstantInterfaceMethodrefInfo(ConstantClassInfo clasS, ConstantNameAndTypeInfo nameAndType) {
             super(clasS, nameAndType);
-        }
-
-        @Override public String
-        toString() {
-
-            // Tweak the "toString()" to make it visually distinguishable from a non-interface methodref.
-            return super.toString().replace(":::", "::");
         }
     }
 
@@ -176,15 +169,15 @@ class ConstantPool {
         toString() {
             try {
                 return (
-                    this.clasS.name
-                    + ":::"
+                    ConstantPool.beautifyTypeName(this.clasS.name)
+                    + "."
                     + (
-                        ConstantPool.this.signatureParser.decodeMethodDescriptor(this.nameAndType.descriptor.toString())
-                        .toString(this.clasS.name, this.nameAndType.name.toString())
+                        ConstantPool.this.signatureParser.decodeMethodDescriptor(this.nameAndType.descriptor.bytes)
+                        .toString(ConstantPool.beautifyTypeName(this.clasS.name), this.nameAndType.name.bytes)
                     )
                 );
             } catch (SignatureException e) {
-                return this.clasS.name + ":::" + this.nameAndType;
+                return ConstantPool.beautifyTypeName(this.clasS.name) + ":::" + this.nameAndType;
             }
         }
     }
@@ -322,13 +315,13 @@ class ConstantPool {
         @Override public String
         toString() {
             try {
-                return this.name + " : " + (
+                return (
                     this.descriptor.bytes.indexOf('(') == -1
-                    ? ConstantPool.this.signatureParser.decodeFieldDescriptor(this.descriptor.bytes)
-                    : ConstantPool.this.signatureParser.decodeMethodDescriptor(this.descriptor.bytes)
+                    ? ConstantPool.this.signatureParser.decodeFieldDescriptor(this.descriptor.bytes) + " " + this.name.bytes
+                    : this.name.bytes + ConstantPool.this.signatureParser.decodeMethodDescriptor(this.descriptor.bytes)
                 );
             } catch (SignatureException e) {
-                return this.name + " : " + this.descriptor;
+                return this.name.bytes + this.descriptor.bytes;
             }
         }
     }
@@ -351,7 +344,7 @@ class ConstantPool {
         size() { return 1; }
 
         @Override public String
-        toString() { return this.bytes; }
+        toString() { return '"' + this.bytes + '"'; }
     }
 
     /**
@@ -410,9 +403,9 @@ class ConstantPool {
         @Override public String
         toString() {
             try {
-                return ConstantPool.this.signatureParser.decodeMethodDescriptor(this.descriptor.toString()).toString();
+                return ConstantPool.this.signatureParser.decodeMethodDescriptor(this.descriptor.bytes).toString();
             } catch (SignatureException e) {
-                return this.descriptor.toString();
+                return this.descriptor.bytes;
             }
         }
     }
@@ -443,7 +436,7 @@ class ConstantPool {
         size() { return 1; }
 
         @Override public String
-        toString() { return this.bootstrapMethodAttrIndex + ":" + this.nameAndType.name.toString(); }
+        toString() { return this.bootstrapMethodAttrIndex + ":" + this.nameAndType.name.bytes; }
     }
 
     /**
@@ -763,6 +756,19 @@ class ConstantPool {
                 throw new RuntimeException("Cooking CP entry #" + i + " of " + count + ": " + re.getMessage(), re);
             }
         }
+    }
+
+    public static String
+    beautifyTypeName(String typeName) {
+
+        // Strip redundant prefixes from the type name.
+        for (String packageNamePrefix : new String[] { "java.lang.", }) {
+            if (typeName.startsWith(packageNamePrefix)) {
+                return typeName.substring(packageNamePrefix.length());
+            }
+        }
+
+        return typeName;
     }
 
     /**

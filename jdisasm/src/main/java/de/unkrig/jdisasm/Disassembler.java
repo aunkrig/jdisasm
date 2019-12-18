@@ -607,7 +607,12 @@ class Disassembler {
             ConstantPool cp = cf.constantPool;
             for (int i = 1; i < cp.getSize();) {
                 ConstantPoolEntry constantPoolEntry = cp.get((short) i, ConstantPoolEntry.class);
-                this.println("    //   #" + i + ": " + constantPoolEntry.toString());
+
+                String pet = constantPoolEntry.getClass().getSimpleName();
+                if (pet.startsWith("Constant")) pet = pet.substring(8);
+                if (pet.endsWith("Info")) pet = pet.substring(0, pet.length() - 4);
+
+                this.printf("    //   #%-5d %-21s %s%n", i, "(" + pet + "):", constantPoolEntry);
                 i += constantPoolEntry.size();
             }
         }
