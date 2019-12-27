@@ -111,7 +111,13 @@ class ConstantPool {
                     + this.nameAndType.name.bytes
                 );
             } catch (SignatureException e) {
-                return this.nameAndType.descriptor.bytes + " " + ConstantPool.beautifyTypeName(this.clasS.name) + "." + this.nameAndType.name.bytes;
+                return (
+                    this.nameAndType.descriptor.bytes
+                    + " "
+                    + ConstantPool.beautifyTypeName(this.clasS.name)
+                    + "."
+                    + this.nameAndType.name.bytes
+                );
             }
         }
     }
@@ -317,7 +323,7 @@ class ConstantPool {
             try {
                 return (
                     this.descriptor.bytes.indexOf('(') == -1
-                    ? ConstantPool.this.signatureParser.decodeFieldDescriptor(this.descriptor.bytes) + " " + this.name.bytes
+                    ? ConstantPool.this.signatureParser.decodeFieldDescriptor(this.descriptor.bytes) + " " + this.name.bytes // SUPPRESS CHECKSTYLE LineLength
                     : this.name.bytes + ConstantPool.this.signatureParser.decodeMethodDescriptor(this.descriptor.bytes)
                 );
             } catch (SignatureException e) {
