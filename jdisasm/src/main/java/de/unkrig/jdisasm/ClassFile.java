@@ -1137,7 +1137,7 @@ class ClassFile {
 
         /**
          * The <a href="http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.7.16-300-D">annotations
-         * table<a>.
+         * table</a>.
          */
         public final List<Annotation> annotations = new ArrayList<Annotation>();
 
