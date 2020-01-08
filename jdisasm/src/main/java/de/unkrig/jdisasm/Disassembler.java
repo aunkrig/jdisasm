@@ -1450,7 +1450,7 @@ class Disassembler {
     }
 
     /**
-     * Exception-proof wrapper for {@link SignatureParser#decodeMethodDescriptor(String)(String)}.
+     * Exception-proof wrapper for {@link SignatureParser#decodeMethodDescriptor(String)}.
      */
     MethodTypeSignature
     decodeMethodDescriptor(String md) {
