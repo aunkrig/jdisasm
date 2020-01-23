@@ -192,7 +192,27 @@ class Disassembler {
      *   </dd>
      *   <dt>{@code -verbose}</dt>
      *   <dd>
-     *     Put more information into the disassembly document, e.g. the constant pool
+     *     Equivalent with "{@code -show-class-pool-indexes -dump-constant-pool -print-all-attributes -print-stack-map}"
+     *   </dd>
+     *   <dt>{@code -show-class-pool-indexes}</dt>
+     *   <dd>
+     *     Within the bytecode diassembly, print the constant pool index for each constant pool reference
+     *   </dd>
+     *   <dt>{@code -dump-constant-pool}</dt>
+     *   <dd>
+     *     Print the constant pool at the top of each class
+     *   </dd>
+     *   <dt>{@code -print-all-attributes}</dt>
+     *   <dd>
+     *     Also print the UNRECOGNIZED attributes
+     *   </dd>
+     *   <dt>{@code -print-stack-map}</dt>
+     *   <dd>
+     *     Print the StackMapTable attribute
+     *   </dd>
+     *   <dt>{@code -src} <var>source-path</var></dt>
+     *   <dd>
+     *     Interweave the output with the class file's source code
      *   </dd>
      *   <dt>{@code -hide-lines}</dt>
      *   <dd>
@@ -222,13 +242,28 @@ class Disassembler {
         Disassembler d = new Disassembler();
         int          i;
         for (i = 0; i < args.length; ++i) {
+
             String arg = args[i];
             if (arg.charAt(0) != '-' || arg.length() == 1) break;
+            if ("--".equals(arg)) { i++; break; }
+
             if ("-o".equals(arg)) {
                 d.setOut(new FileOutputStream(args[++i]));
             } else
             if ("-verbose".equals(arg)) {
                 d.setVerbose(true);
+            } else
+            if ("-show-class-pool-indexes".equals(arg)) {
+                d.setShowClassPoolIndexes(true);
+            } else
+            if ("-dump-constant-pool".equals(arg)) {
+                d.setDumpConstantPool(true);
+            } else
+            if ("-print-all-attributes".equals(arg)) {
+                d.setPrintAllAttributes(true);
+            } else
+            if ("-print-stack-map".equals(arg)) {
+                d.setPrintStackMap(true);
             } else
             if ("-src".equals(arg)) {
                 d.setSourcePath(Disassembler.splitPath(args[++i]));
@@ -251,12 +286,20 @@ class Disassembler {
                     + "Usage:%n"
                     + "  java %1$s [ <option> ] ... [ <class-file-name> | <class-file-url> | '-' ] ...%n"
                     + "Valid options are:%n"
-                    + "  -o <output-file>   Store disassembly output in a file.%n"
-                    + "  -verbose%n"
-                    + "  -src <source-path> Interweave the output with the class file's source code.%n"
-                    + "  -hide-lines        Don't print line numbers.%n"
-                    + "  -hide-vars         Don't resolve local variable names.%n"
-                    + "  -symbolic-labels   Use symbolic labels instead of offsets.%n"
+                    + "  -o <output-file>         Store disassembly output in a file.%n"
+                    + "  -show-class-pool-indexes Within the bytecode diassembly, print the index%n"
+                    + "                           for each constant pool reference.%n"
+                    + "  -dump-constant-pool      Print the constant pool.%n"
+                    + "  -print-all-attributes    Also print the UNRECOGNIZED attributes.%n"
+                    + "  -print-stack-map         Print the StackMapTable attribute.%n"
+                    + "  -verbose                 Equivalent with \"-show-class-pool-indexes%n"
+                    + "                           -dump-constant-pool -print-all-attributes%n"
+                    + "                           -print-stack-map\".%n"
+                    + "  -src <source-path>       Interweave the output with the class file's source code.%n"
+                    + "  -hide-lines              Don't print line numbers.%n"
+                    + "  -hide-vars               Don't resolve local variable names.%n"
+                    + "  -symbolic-labels         Use symbolic labels instead of offsets.%n"
+                    + "  -help                    Print this text and exit.%n"
                 ), Disassembler.class.getName());
 
                 System.exit(0);
@@ -328,13 +371,12 @@ class Disassembler {
     }
 
     /**
-     * Equivalent to "--show-class-pool-indexes true --constant-pool-dump true --print-all-attributes true
-     * --print-stack-map true".
+     * Equivalent with "{@code -show-class-pool-indexes -dump-constant-pool -print-all-attributes -print-stack-map}".
      */
     public void
     setVerbose(boolean verbose) {
         this.setShowClassPoolIndexes(verbose);
-        this.setConstantPoolDump(verbose);
+        this.setDumpConstantPool(verbose);
         this.setPrintAllAttributes(verbose);
         this.setPrintStackMap(verbose);
     }
@@ -349,7 +391,7 @@ class Disassembler {
      * Whether to print the entire constant pool in the output.
      */
     public void
-    setConstantPoolDump(boolean dumpConstantPool) { this.dumpConstantPool = dumpConstantPool; }
+    setDumpConstantPool(boolean dumpConstantPool) { this.dumpConstantPool = dumpConstantPool; }
 
     /**
      * Whether to print all attributes (otherwise only the unprocessed attributes).
