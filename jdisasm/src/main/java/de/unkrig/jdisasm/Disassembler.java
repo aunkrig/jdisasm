@@ -1252,7 +1252,6 @@ class Disassembler {
         @Override public void
         visit(StackMapTableAttribute smta) {
             Disassembler.this.println(this.prefix + "StackMapTable:");
-            Disassembler.this.println(this.prefix + "  0: append_frame(method parameters)");
             int bytecodeOffset = -1;
             for (StackMapFrame smf : smta.entries) {
                 bytecodeOffset += 1 + smf.offsetDelta;
