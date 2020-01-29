@@ -1760,7 +1760,20 @@ class ClassFile {
         final List<StackMapFrame> entries = new ArrayList<StackMapFrame>();
 
         StackMapTableAttribute(DataInputStream dis, ClassFile cf) throws IOException {
-            for (int i = dis.readUnsignedShort(); i > 0; i--) this.entries.add(this.readStackMapFrame(dis));
+            final int n = dis.readUnsignedShort();
+            for (int i = 0; i < n; i++) {
+                StackMapFrame smf;
+                try {
+                    smf = this.readStackMapFrame(dis);
+                } catch (IOException ioe) {
+                    IOException ioe2 = new IOException("Reading frame #" + i + " of " + n + ": " + ioe.getMessage());
+                    ioe2.initCause(ioe);
+                    throw ioe2; // SUPPRESS CHECKSTYLE AvoidHidingCause
+                } catch (RuntimeException re) {
+                    throw new RuntimeException("Reading frame #" + i + " of " + n + ": " + re.getMessage(), re);
+                }
+                this.entries.add(smf);
+            }
         }
 
         private StackMapFrame

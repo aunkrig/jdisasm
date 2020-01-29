@@ -67,11 +67,13 @@ class ConstantPool {
         @Override public String
         toString() {
 
+            String typeName;
             try {
-                return ConstantPool.this.signatureParser.decodeClassNameOrFieldDescriptor(this.name).toString();
+                typeName = ConstantPool.this.signatureParser.decodeClassNameOrFieldDescriptor(this.name).toString();
             } catch (SignatureException e) {
-                return this.name;
+                typeName = this.name;
             }
+            return ConstantPool.beautifyTypeName(typeName);
         }
     }
 
