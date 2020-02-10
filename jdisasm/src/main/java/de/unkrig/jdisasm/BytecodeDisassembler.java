@@ -286,12 +286,6 @@ class BytecodeDisassembler {
                 it.remove();
             }
 
-            // Print instruction offsets only for branch targets.
-            {
-                String label = this.branchTargets.get(instructionOffset);
-                if (label != null) pw.println(label);
-            }
-
             // Print beginnings of TRY bodies.
             for (Iterator<Entry<Integer, Set<Integer>>> it = tryStarts.entrySet().iterator(); it.hasNext();) {
                 Entry<Integer, Set<Integer>> sc      = it.next();
@@ -347,8 +341,25 @@ class BytecodeDisassembler {
                 pw.println(indentation + "// " + smf);
             }
 
+            // Print instruction offset.
+            String indentation2 = indentation;
+            {
+                String label = this.branchTargets.get(instructionOffset);
+                if (label == null && this.d.printAllOffsets) {
+                    label = "#" + instructionOffset;
+                }
+
+                if (label != null) {
+                    if (label.length() >= indentation.length()) {
+                        pw.println(label);
+                    } else {
+                        indentation2 = label + indentation.substring(label.length());
+                    }
+                }
+            }
+
             // Print disassembly line.
-            pw.println(indentation + text);
+            pw.println(indentation2 + text);
         }
     }
 
