@@ -448,6 +448,52 @@ class ConstantPool {
     }
 
     /**
+     * Representation of a CONSTANT_Module_info entry.
+     *
+     * @since Java 9
+     */
+    public
+    class ConstantModuleInfo implements ConstantPoolEntry {
+
+        /**
+         * {@code CONSTANT_Module_info.name_index}, see JVMS11 4.4.11
+         */
+        public final ConstantUtf8Info name;
+
+        public
+        ConstantModuleInfo(ConstantUtf8Info name) { this.name = name; }
+
+        @Override public int
+        size() { return 1; }
+
+        @Override public String
+        toString() { return this.name.bytes; }
+    }
+
+    /**
+     * Representation of a CONSTANT_Package_info entry.
+     *
+     * @since Java 9
+     */
+    public
+    class ConstantPackageInfo implements ConstantPoolEntry {
+
+        /**
+         * {@code CONSTANT_Package_info.name_index}, see JVMS11 4.4.12
+         */
+        public final ConstantUtf8Info name;
+
+        public
+        ConstantPackageInfo(ConstantUtf8Info name) { this.name = name; }
+
+        @Override public int
+        size() { return 1; }
+
+        @Override public String
+        toString() { return this.name.bytes; }
+    }
+
+    /**
      * A throw-in interface for convenient access to class-or-float-or-integer-or-string operands (for opcodes {@code
      * ldc} and {@code ldc_w}).
      */
@@ -745,6 +791,28 @@ class ConstantPool {
                             this.getConstantNameAndTypeInfo(this.nameAndTypeIndex)
                         );
                     }
+                };
+                i++;
+                break;
+
+            case 19: // CONSTANT_Module_info
+                re = new RawEntry2() {
+
+                    final short nameIndex = dis.readShort();
+
+                    @Override ConstantPoolEntry
+                    cook() { return new ConstantModuleInfo(this.getConstantUtf8Info(this.nameIndex)); }
+                };
+                i++;
+                break;
+
+            case 20: // CONSTANT_Package_info
+                re = new RawEntry2() {
+
+                    final short nameIndex = dis.readShort();
+
+                    @Override ConstantPoolEntry
+                    cook() { return new ConstantPackageInfo(this.getConstantUtf8Info(this.nameIndex)); }
                 };
                 i++;
                 break;
