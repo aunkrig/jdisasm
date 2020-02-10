@@ -56,6 +56,7 @@ import de.unkrig.jdisasm.ConstantPool.ConstantDoubleOrFloatOrIntegerOrLongInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantMethodHandleInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantNameAndTypeInfo;
+import de.unkrig.jdisasm.ConstantPool.ConstantPackageInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantPoolEntry;
 import de.unkrig.jdisasm.ConstantPool.ConstantUtf8Info;
 import de.unkrig.jdisasm.SignatureParser.SignatureException;
@@ -150,6 +151,11 @@ class ClassFile {
      * The optional {@code InnerClassesAttribute} of this class or interface.
      */
     @Nullable public InnerClassesAttribute innerClassesAttribute;
+
+    /**
+     * The optional {@code ModulePackagesAttribute} of this class or interface.
+     */
+    @Nullable public ModulePackagesAttribute modulePackagesAttribute;
 
     /**
      * The optional {@code RuntimeInvisibleAnnotations} attribute of this class or interface.
@@ -370,6 +376,12 @@ class ClassFile {
             visit(InnerClassesAttribute ica) {
                 ClassFile.this.innerClassesAttribute = ica;
                 ClassFile.this.allAttributes.add(ica);
+            }
+
+            @Override public void
+            visit(ModulePackagesAttribute mpa) {
+                ClassFile.this.modulePackagesAttribute = mpa;
+                ClassFile.this.allAttributes.add(mpa);
             }
 
             @Override public void
@@ -683,6 +695,8 @@ class ClassFile {
     }
 
     /**
+     * See JVMS9 4.7.11.
+     *
      * @since Java SE 5.0
      */
     public static
@@ -694,6 +708,8 @@ class ClassFile {
     }
 
     /**
+     * See JVMS9 4.7.20.
+     *
      * @since Java SE 8
      */
     public static
@@ -705,6 +721,8 @@ class ClassFile {
     }
 
     /**
+     * See JVMS9 4.7.21.
+     *
      * @since Java SE 8
      */
     public static
@@ -771,6 +789,8 @@ class ClassFile {
     }
 
     /**
+     * See JVMS9 4.7.25.
+     *
      * @since Java SE 9
      */
     public static
@@ -782,17 +802,31 @@ class ClassFile {
     }
 
     /**
+     * Representation of a {@code ModulePackages} attribute (JVMS 9, 4.7.26).
+     *
      * @since Java SE 9
      */
-    public static
-    class ModulePackagesAttribute extends UnknownAttribute {
+    public static final
+    class ModulePackagesAttribute implements Attribute {
+
+        /**
+         * The packages of this module.
+         */
+        public final List<String> packages = new ArrayList<String>();
 
         ModulePackagesAttribute(DataInputStream dis, ClassFile cf) throws IOException {
-            super("ModulePackages", dis, cf);
+            for (int i = dis.readShort(); i > 0; --i) {
+                this.packages.add(cf.constantPool.get(dis.readShort(), ConstantPackageInfo.class).name.bytes);
+            }
         }
+
+        @Override public void   accept(AttributeVisitor visitor) { visitor.visit(this);     }
+        @Override public String getName()                        { return "ModulePackages"; }
     }
 
     /**
+     * See JVMS9 4.7.27.
+     *
      * @since Java SE 9
      */
     public static
@@ -966,6 +1000,7 @@ class ClassFile {
         void visit(LocalVariableTableAttribute                   lvta);
         void visit(LocalVariableTypeTableAttribute               lvtta);
         void visit(MethodParametersAttribute                     mpa);
+        void visit(ModulePackagesAttribute                       mpa);
         void visit(RuntimeInvisibleAnnotationsAttribute          riaa);
         void visit(RuntimeInvisibleParameterAnnotationsAttribute ripaa);
         void visit(RuntimeVisibleAnnotationsAttribute            rvaa);
@@ -1005,6 +1040,7 @@ class ClassFile {
         @Override public void visit(LocalVariableTableAttribute                   lvta)  { this.visitOther(lvta);  }
         @Override public void visit(LocalVariableTypeTableAttribute               lvtta) { this.visitOther(lvtta); }
         @Override public void visit(MethodParametersAttribute                     mpa)   { this.visitOther(mpa);   }
+        @Override public void visit(ModulePackagesAttribute                       mpa)   { this.visitOther(mpa);   }
         @Override public void visit(RuntimeInvisibleAnnotationsAttribute          riaa)  { this.visitOther(riaa);  }
         @Override public void visit(RuntimeInvisibleParameterAnnotationsAttribute ripaa) { this.visitOther(ripaa); }
         @Override public void visit(RuntimeVisibleAnnotationsAttribute            rvaa)  { this.visitOther(rvaa);  }
@@ -1043,7 +1079,7 @@ class ClassFile {
     }
 
     /**
-     * Representation of a {@code Synthetic} attribute.
+     * Representation of a {@code Synthetic} attribute (JVMS9 4.7.8).
      */
     public static
     class SyntheticAttribute implements Attribute {
@@ -1054,7 +1090,7 @@ class ClassFile {
     }
 
     /**
-     * Representation of a {@code Deprecated} attribute.
+     * Representation of a {@code Deprecated} attribute (JVMS9 4.7.15).
      */
     public static
     class DeprecatedAttribute implements Attribute {
@@ -1065,7 +1101,7 @@ class ClassFile {
     }
 
     /**
-     * Representation of a {@code InnerClasses} attribute.
+     * Representation of a {@code InnerClasses} attribute (JVMS 9, 4.7.6).
      */
     public static final
     class InnerClassesAttribute implements Attribute {
@@ -1155,7 +1191,7 @@ class ClassFile {
     }
 
     /**
-     * Representation of the {@code RuntimeInvisibleAnnotations} attribute.
+     * Representation of the {@code RuntimeInvisibleAnnotations} attribute (JVM9 4.7.17).
      */
     public
     class RuntimeInvisibleAnnotationsAttribute extends RuntimeVisibleAnnotationsAttribute {
@@ -1213,7 +1249,7 @@ class ClassFile {
     }
 
     /**
-     * Representation of the {@code RuntimeInvisibleParameterAnnotations} attribute.
+     * Representation of the {@code RuntimeInvisibleParameterAnnotations} attribute (JVMS9 4.7.19).
      */
     public
     class RuntimeInvisibleParameterAnnotationsAttribute
@@ -1228,8 +1264,7 @@ class ClassFile {
     }
 
     /**
-     * Representation of the <a href="http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.7.20">{@code
-     * AnnotationDefault} attribute</a>.
+     * Representation of the {@code AnnotationDefault} attribute (JVMS9 4.7.22).
      */
     public
     class AnnotationDefaultAttribute implements Attribute {

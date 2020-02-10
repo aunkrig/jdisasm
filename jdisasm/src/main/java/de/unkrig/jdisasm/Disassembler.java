@@ -87,6 +87,7 @@ import de.unkrig.jdisasm.ClassFile.LocalVariableTypeTableAttribute;
 import de.unkrig.jdisasm.ClassFile.Method;
 import de.unkrig.jdisasm.ClassFile.MethodParametersAttribute;
 import de.unkrig.jdisasm.ClassFile.MethodParametersAttribute.Parameter;
+import de.unkrig.jdisasm.ClassFile.ModulePackagesAttribute;
 import de.unkrig.jdisasm.ClassFile.ParameterAnnotation;
 import de.unkrig.jdisasm.ClassFile.RuntimeInvisibleAnnotationsAttribute;
 import de.unkrig.jdisasm.ClassFile.RuntimeInvisibleParameterAnnotationsAttribute;
@@ -682,6 +683,18 @@ class Disassembler {
             }
         }
 
+        // Print module packages.
+        {
+            ModulePackagesAttribute mpa = cf.modulePackagesAttribute;
+            if (mpa != null) {
+                this.println();
+                this.println("    // Module packages:");
+                for (String packageName : mpa.packages) {
+                    this.println("    //   " + packageName);
+                }
+            }
+        }
+
         // Print fields.
         this.disassembleFields(cf.fields);
 
@@ -1185,6 +1198,14 @@ class Disassembler {
             Disassembler.this.println(this.prefix + "MethodParameters:");
             for (Parameter p : mpa.parameters) {
                 Disassembler.this.println(this.prefix + "  " + p);
+            }
+        }
+
+        @Override public void
+        visit(ModulePackagesAttribute mpa) {
+            Disassembler.this.println(this.prefix + "ModulePackages:");
+            for (String packagE : mpa.packages) {
+                Disassembler.this.println(this.prefix + "  " + packagE.replace('/', '.'));
             }
         }
 
