@@ -168,6 +168,11 @@ class Disassembler {
      */
     boolean symbolicLabels;
 
+    /**
+     * If false, then only the labels of branch targets are printed.
+     */
+    boolean printAllOffsets;
+
     private SignatureParser signatureParser = new SignatureParser();
 
     private enum AttributeContext { CLASS, FIELD, METHOD }
@@ -449,6 +454,12 @@ class Disassembler {
      */
     public void
     setSymbolicLabels(boolean symbolicLabels) { this.symbolicLabels = symbolicLabels; }
+
+    /**
+     * If false, then only the labels of branch targets are printed
+     */
+    public void
+    setPrintAllOffsets(boolean printAllOffsets) { this.printAllOffsets = printAllOffsets; }
 
     private void print(String s)                       { this.pw.print(s);             }
     private void println()                             { this.pw.println();            }
