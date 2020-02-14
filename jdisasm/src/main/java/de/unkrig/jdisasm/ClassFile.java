@@ -346,7 +346,16 @@ class ClassFile {
                     ioe2.initCause(ioe);
                     throw ioe2; // SUPPRESS CHECKSTYLE AvoidHidingCause
                 } catch (RuntimeException re) {
-                    throw new RuntimeException("Reading method #" + i + " of " + n + ": " + re.getMessage(), re);
+                    throw new RuntimeException((
+                        "Class \""
+                        + this.thisClassName
+                        + "\": Reading method #"
+                        + i
+                        + " of "
+                        + n
+                        + ": "
+                        + re.getMessage()
+                    ), re);
                 }
             }
         }
