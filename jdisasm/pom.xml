@@ -8,7 +8,7 @@
 
 	<groupId>de.unkrig.jdisasm</groupId>
 	<artifactId>jdisasm</artifactId>
-	<version>1.0.5-SNAPSHOT</version>
+	<version>1.0.5</version>
 
 	<properties>
 		<maven.compiler.source>1.6</maven.compiler.source>
@@ -41,7 +41,7 @@
 		<plugins>
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
-				<version>2.6</version>
+				<version>3.2.0</version>
 				<configuration>
 					<descriptorRefs>
 						<descriptorRef>jar-with-dependencies</descriptorRef>
@@ -131,9 +131,7 @@
 							<execution>
 								<id>sign-artifacts</id>
 								<phase>verify</phase>
-								<goals>
-									<goal>sign</goal>
-								</goals>
+								<goals><goal>sign</goal></goals>
 							</execution>
 						</executions>
 					</plugin>
