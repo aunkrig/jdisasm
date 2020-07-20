@@ -52,7 +52,7 @@ class ConstantPool {
      * Representation of a CONSTANT_Class_info entry.
      */
     public
-    class ConstantClassInfo implements ConstantClassOrFloatOrIntegerOrStringInfo {
+    class ConstantClassInfo implements ConstantClassOrFloatOrIntegerOrStringOrMethodHandleOrMethodTypeOrDynamicInfo {
 
         /**
          * Fully qualified (dot-separated) class name.
@@ -128,7 +128,9 @@ class ConstantPool {
      * Representation of a CONSTANT_Methodref_info entry.
      */
     public
-    class ConstantMethodrefInfo extends ConstantInterfaceMethodrefOrMethodrefInfo {
+    class ConstantMethodrefInfo
+    extends ConstantInterfaceMethodrefOrMethodrefInfo
+    implements ConstantClassOrFloatOrIntegerOrStringOrMethodHandleOrMethodTypeOrDynamicInfo {
 
         public
         ConstantMethodrefInfo(ConstantClassInfo clasS, ConstantNameAndTypeInfo nameAndType) {
@@ -145,6 +147,13 @@ class ConstantPool {
         public
         ConstantInterfaceMethodrefInfo(ConstantClassInfo clasS, ConstantNameAndTypeInfo nameAndType) {
             super(clasS, nameAndType);
+        }
+
+        @Override public String
+        toString() {
+
+            // Tweak the "toString()" to make it visually distinguishable from a non-interface methodref.
+            return super.toString().replace(":::", "::");
         }
     }
 
@@ -195,7 +204,7 @@ class ConstantPool {
      */
     public static
     class ConstantStringInfo
-    implements ConstantClassOrFloatOrIntegerOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo {
+    implements ConstantClassOrFloatOrIntegerOrStringOrMethodHandleOrMethodTypeOrDynamicInfo, ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo { // SUPPRESS CHECKSTYLE LineLength
 
         /**
          * {@code CONSTANT_String_info.string_index}, see JVMS7 4.4.3
@@ -217,7 +226,7 @@ class ConstantPool {
      */
     public static
     class ConstantIntegerInfo
-    implements ConstantClassOrFloatOrIntegerOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo { // SUPPRESS CHECKSTYLE LineLength
+    implements ConstantClassOrFloatOrIntegerOrStringOrMethodHandleOrMethodTypeOrDynamicInfo, ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo { // SUPPRESS CHECKSTYLE LineLength
 
         /**
          * {@code CONSTANT_Integer_info.bytes}, see JVMS7 4.4.4
@@ -238,7 +247,8 @@ class ConstantPool {
      * Representation of a CONSTANT_Float_info entry.
      */
     public static
-    class ConstantFloatInfo implements ConstantClassOrFloatOrIntegerOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo { // SUPPRESS CHECKSTYLE LineLength
+    class ConstantFloatInfo
+    implements ConstantClassOrFloatOrIntegerOrStringOrMethodHandleOrMethodTypeOrDynamicInfo, ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo { // SUPPRESS CHECKSTYLE LineLength
 
         /**
          * {@code CONSTANT_Float_info.bytes}, see JVMS7 4.4.4
@@ -259,7 +269,8 @@ class ConstantPool {
      * Representation of a CONSTANT_Long_info entry.
      */
     public static
-    class ConstantLongInfo implements ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrLongInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo { // SUPPRESS CHECKSTYLE LineLength
+    class ConstantLongInfo
+    implements ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrLongOrDynamicInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo { // SUPPRESS CHECKSTYLE LineLength
 
         /**
          * {@code CONSTANT_Long_info.bytes}, see JVMS7 4.4.5
@@ -279,7 +290,8 @@ class ConstantPool {
      * Representation of a CONSTANT_Double_info entry.
      */
     public static
-    class ConstantDoubleInfo implements ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrLongInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo { // SUPPRESS CHECKSTYLE LineLength
+    class ConstantDoubleInfo
+    implements ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrLongOrDynamicInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo { // SUPPRESS CHECKSTYLE LineLength
 
         /**
          * {@code CONSTANT_Double_info.bytes}, see JVMS7 4.4.5
@@ -393,7 +405,8 @@ class ConstantPool {
      * Representation of a CONSTANT_MethodType_info entry.
      */
     public
-    class ConstantMethodTypeInfo implements ConstantPoolEntry {
+    class ConstantMethodTypeInfo
+    implements ConstantPoolEntry, ConstantClassOrFloatOrIntegerOrStringOrMethodHandleOrMethodTypeOrDynamicInfo {
 
         /**
          * {@code CONSTANT_MethodType_info.bytes}, see JVMS8 4.4.9
@@ -416,6 +429,36 @@ class ConstantPool {
                 return this.descriptor.bytes;
             }
         }
+    }
+
+    /**
+     * Representation of a CONSTANT_Dynamic_info entry.
+     */
+    public static
+    class ConstantDynamicInfo
+    implements ConstantPoolEntry, ConstantClassOrFloatOrIntegerOrStringOrMethodHandleOrMethodTypeOrDynamicInfo, ConstantDoubleOrLongOrDynamicInfo { // SUPPRESS CHECKSTYLE LineLength
+
+        /**
+         * {@code CONSTANT_Dynamic_info.bytes}, see JVMS8 4.4.10
+         */
+        public final short bootstrapMethodAttrIndex;
+
+        /**
+         * {@code CONSTANT_Dynamic_info.name_and_type_index}, see JVMS8 4.4.10
+         */
+        public final ConstantNameAndTypeInfo nameAndType;
+
+        public
+        ConstantDynamicInfo(short bootstrapMethodAttrIndex, ConstantNameAndTypeInfo nameAndType) {
+            this.bootstrapMethodAttrIndex = bootstrapMethodAttrIndex;
+            this.nameAndType              = nameAndType;
+        }
+
+        @Override public int
+        size() { return 1; }
+
+        @Override public String
+        toString() { return this.bootstrapMethodAttrIndex + ":" + this.nameAndType.name.toString(); }
     }
 
     /**
@@ -498,7 +541,7 @@ class ConstantPool {
      * ldc} and {@code ldc_w}).
      */
     public
-    interface ConstantClassOrFloatOrIntegerOrStringInfo extends ConstantPoolEntry {}
+    interface ConstantClassOrFloatOrIntegerOrStringOrMethodHandleOrMethodTypeOrDynamicInfo extends ConstantPoolEntry {}
 
     /**
      * A throw-in interface for convenient access to double-or-float-or-integer-or-long operands (for element values
@@ -518,7 +561,7 @@ class ConstantPool {
      * A throw-in interface for convenient access to double-or-long operands (for opcode {@code ldc2_w}).
      */
     public
-    interface ConstantDoubleOrLongInfo extends ConstantPoolEntry {}
+    interface ConstantDoubleOrLongOrDynamicInfo extends ConstantPoolEntry {}
 
     private SignatureParser signatureParser;
 
@@ -778,7 +821,24 @@ class ConstantPool {
                 i++;
                 break;
 
-            case 18: // CONSTANT_InvokeDynamic_info
+            case 17: // CONSTANT_Dynamic_info, Java 11+, JVMS11 4.4.10
+                re = new RawEntry2() {
+
+                    final short bootstrapMethodAttrIndex = dis.readShort();
+                    final short nameAndTypeIndex         = dis.readShort();
+
+                    @Override ConstantPoolEntry
+                    cook() {
+                        return new ConstantDynamicInfo(
+                            this.bootstrapMethodAttrIndex,
+                            this.getConstantNameAndTypeInfo(this.nameAndTypeIndex)
+                        );
+                    }
+                };
+                i++;
+                break;
+
+            case 18: // CONSTANT_InvokeDynamic_info, Java 7+, JVMS11 4.4.10
                 re = new RawEntry2() {
 
                     final short bootstrapMethodAttrIndex = dis.readShort();
@@ -795,7 +855,7 @@ class ConstantPool {
                 i++;
                 break;
 
-            case 19: // CONSTANT_Module_info
+            case 19: // CONSTANT_Module_info, Java 9+, JVMS11 4.4.11
                 re = new RawEntry2() {
 
                     final short nameIndex = dis.readShort();
@@ -806,7 +866,7 @@ class ConstantPool {
                 i++;
                 break;
 
-            case 20: // CONSTANT_Package_info
+            case 20: // CONSTANT_Package_info, Java 9+, JVMS11 4.4.12
                 re = new RawEntry2() {
 
                     final short nameIndex = dis.readShort();

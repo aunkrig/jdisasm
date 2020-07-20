@@ -63,8 +63,8 @@ import de.unkrig.jdisasm.ClassFile.StackMapFrame;
 import de.unkrig.jdisasm.ClassFile.StackMapFrameVisitor;
 import de.unkrig.jdisasm.ClassFile.StackMapTableAttribute;
 import de.unkrig.jdisasm.ConstantPool.ConstantClassInfo;
-import de.unkrig.jdisasm.ConstantPool.ConstantClassOrFloatOrIntegerOrStringInfo;
-import de.unkrig.jdisasm.ConstantPool.ConstantDoubleOrLongInfo;
+import de.unkrig.jdisasm.ConstantPool.ConstantClassOrFloatOrIntegerOrStringOrMethodHandleOrMethodTypeOrDynamicInfo;
+import de.unkrig.jdisasm.ConstantPool.ConstantDoubleOrLongOrDynamicInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantFieldrefInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantInterfaceMethodrefInfo;
 import de.unkrig.jdisasm.ConstantPool.ConstantInterfaceMethodrefOrMethodrefInfo;
@@ -385,12 +385,12 @@ class BytecodeDisassembler {
     readOperand = new OperandKind.Visitor<String, IOException>() {
 
         @Override public String
-        visitClassFloatIntString1(OperandKind operandType) throws IOException {
+        visitClassFloatIntStringMethodHandleMethodTypeDynamic(OperandKind operandType) throws IOException {
 
             short  index = (short) (0xff & BytecodeDisassembler.this.dis.readByte());
             String t     = BytecodeDisassembler.this.method.getClassFile().constantPool.get(
                 index,
-                ConstantClassOrFloatOrIntegerOrStringInfo.class
+                ConstantClassOrFloatOrIntegerOrStringOrMethodHandleOrMethodTypeOrDynamicInfo.class
             ).toString();
 
             if (BytecodeDisassembler.this.d.showClassPoolIndexes) t += " (" + (0xffff & index) + ")";
@@ -399,12 +399,12 @@ class BytecodeDisassembler {
         }
 
         @Override public String
-        visitClassFloatIntString2(OperandKind operandType) throws IOException {
+        visitClassFloatIntStringMethodHandleMethodTypeDynamicW(OperandKind operandType) throws IOException {
 
             short  index = BytecodeDisassembler.this.dis.readShort();
             String t     = BytecodeDisassembler.this.method.getClassFile().constantPool.get(
                 index,
-                ConstantClassOrFloatOrIntegerOrStringInfo.class
+                ConstantClassOrFloatOrIntegerOrStringOrMethodHandleOrMethodTypeOrDynamicInfo.class
             ).toString();
 
             if (BytecodeDisassembler.this.d.showClassPoolIndexes) t += " (" + (0xffff & index) + ")";
@@ -413,12 +413,12 @@ class BytecodeDisassembler {
         }
 
         @Override public String
-        visitDoubleLong2(OperandKind operandType) throws IOException {
+        visitDoubleLongDynamicW(OperandKind operandType) throws IOException {
 
             short  index = BytecodeDisassembler.this.dis.readShort();
             String t     = BytecodeDisassembler.this.method.getClassFile().constantPool.get(
                 index,
-                ConstantDoubleOrLongInfo.class
+                ConstantDoubleOrLongOrDynamicInfo.class
             ).toString();
 
             if (BytecodeDisassembler.this.d.showClassPoolIndexes) t += " (" + (0xffff & index) + ")";

@@ -39,37 +39,37 @@ public
 enum OperandKind {
 
     // SUPPRESS CHECKSTYLE Javadoc|LineLength:31
-    CLASSFLOATINTSTRING1           { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitClassFloatIntString1(this);           } },
-    CLASSFLOATINTSTRING2           { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitClassFloatIntString2(this);           } },
-    DOUBLELONG2                    { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitDoubleLong2(this);                    } },
+    CLASSFLOATINTSTRINGMETHODHANDLEMETHODTYPEDYNAMIC   { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitClassFloatIntStringMethodHandleMethodTypeDynamic(this);  } },
+    CLASSFLOATINTSTRINGMETHODHANDLEMETHODTYPEDYNAMIC_W { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitClassFloatIntStringMethodHandleMethodTypeDynamicW(this); } },
+    DOUBLELONGDYNAMIC_W                                { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitDoubleLongDynamicW(this);                                } },
 
-    FIELDREF2                      { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitFieldref2(this);                      } },
+    FIELDREF2                                          { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitFieldref2(this);                                         } },
 
-    METHODREF2                     { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitMethodref2(this);                     } },
-    INTERFACEMETHODREF2            { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitInterfaceMethodref2(this);            } },
-    INTERFACEMETHODREFORMETHODREF2 { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitInterfaceMethodrefOrMethodref2(this); } },
+    METHODREF2                                         { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitMethodref2(this);                                        } },
+    INTERFACEMETHODREF2                                { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitInterfaceMethodref2(this);                               } },
+    INTERFACEMETHODREFORMETHODREF2                     { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitInterfaceMethodrefOrMethodref2(this);                    } },
 
-    CLASS2                         { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitClass2(this);                         } },
+    CLASS2                                             { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitClass2(this);                                            } },
 
-    LOCALVARIABLEINDEX1            { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitLocalVariableIndex1(this);            } },
-    LOCALVARIABLEINDEX2            { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitLocalVariableIndex2(this);            } },
-    IMPLICITLOCALVARIABLEINDEX_0   { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitImplicitLocalVariableIndex(this, 0);  } },
-    IMPLICITLOCALVARIABLEINDEX_1   { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitImplicitLocalVariableIndex(this, 1);  } },
-    IMPLICITLOCALVARIABLEINDEX_2   { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitImplicitLocalVariableIndex(this, 2);  } },
-    IMPLICITLOCALVARIABLEINDEX_3   { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitImplicitLocalVariableIndex(this, 3);  } },
+    LOCALVARIABLEINDEX1                                { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitLocalVariableIndex1(this);                               } },
+    LOCALVARIABLEINDEX2                                { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitLocalVariableIndex2(this);                               } },
+    IMPLICITLOCALVARIABLEINDEX_0                       { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitImplicitLocalVariableIndex(this, 0);                     } },
+    IMPLICITLOCALVARIABLEINDEX_1                       { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitImplicitLocalVariableIndex(this, 1);                     } },
+    IMPLICITLOCALVARIABLEINDEX_2                       { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitImplicitLocalVariableIndex(this, 2);                     } },
+    IMPLICITLOCALVARIABLEINDEX_3                       { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitImplicitLocalVariableIndex(this, 3);                     } },
 
-    BRANCHOFFSET2                  { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitBranchOffset2(this);                  } },
-    BRANCHOFFSET4                  { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitBranchOffset4(this);                  } },
+    BRANCHOFFSET2                                      { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitBranchOffset2(this);                                     } },
+    BRANCHOFFSET4                                      { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitBranchOffset4(this);                                     } },
 
-    SIGNEDBYTE                     { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitSignedByte(this);                     } },
-    UNSIGNEDBYTE                   { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitUnsignedByte(this);                   } },
-    SIGNEDSHORT                    { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitSignedShort(this);                    } },
-    ATYPE                          { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitAtype(this);                          } },
+    SIGNEDBYTE                                         { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitSignedByte(this);                                        } },
+    UNSIGNEDBYTE                                       { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitUnsignedByte(this);                                      } },
+    SIGNEDSHORT                                        { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitSignedShort(this);                                       } },
+    ATYPE                                              { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitAtype(this);                                             } },
 
-    TABLESWITCH                    { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitTableswitch(this);                    } },
-    LOOKUPSWITCH                   { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitLookupswitch(this);                   } },
+    TABLESWITCH                                        { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitTableswitch(this);                                       } },
+    LOOKUPSWITCH                                       { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitLookupswitch(this);                                      } },
 
-    DYNAMICCALLSITE                { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitDynamicCallsite(this);                } },
+    DYNAMICCALLSITE                                    { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitDynamicCallsite(this);                                   } },
 
     ;
 
@@ -83,9 +83,9 @@ enum OperandKind {
     interface Visitor<R, EX extends Throwable> {
 
         // SUPPRESS CHECKSTYLE Javadoc:28
-        R visitClassFloatIntString1(OperandKind operandType)                  throws EX;
-        R visitClassFloatIntString2(OperandKind operandType)                  throws EX;
-        R visitDoubleLong2(OperandKind operandType)                           throws EX;
+        R visitClassFloatIntStringMethodHandleMethodTypeDynamic(OperandKind operandType)                  throws EX;
+        R visitClassFloatIntStringMethodHandleMethodTypeDynamicW(OperandKind operandType)                  throws EX;
+        R visitDoubleLongDynamicW(OperandKind operandType)                           throws EX;
 
         R visitFieldref2(OperandKind operandType)                             throws EX;
 
