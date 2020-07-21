@@ -1,0 +1,9 @@
+
+
+
+spring.cloud.gateway.globalcors.corsConfigurations.['/**'].allowedOrigins: \
+  http://weissesbrett.muenchen.de, \
+  http://weissesbrett.muenchen.de:80, \
+  https://weissesbrett.muenchen.de, \
+  https://weissesbrett.muenchen.de:443, \
+  http://sbrettk001.srv.muenchen.de:8082
