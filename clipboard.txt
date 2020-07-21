@@ -1,9 +1,7 @@
 
-
-
-spring.cloud.gateway.globalcors.corsConfigurations.['/**'].allowedOrigins: \
-  http://weissesbrett.muenchen.de, \
-  http://weissesbrett.muenchen.de:80, \
-  https://weissesbrett.muenchen.de, \
-  https://weissesbrett.muenchen.de:443, \
-  http://sbrettk001.srv.muenchen.de:8082
+		FORWARDED_HEADER_NAMES.add("Forwarded");
+		FORWARDED_HEADER_NAMES.add("X-Forwarded-Host");
+		FORWARDED_HEADER_NAMES.add("X-Forwarded-Port");
+		FORWARDED_HEADER_NAMES.add("X-Forwarded-Proto");
+		FORWARDED_HEADER_NAMES.add("X-Forwarded-Prefix");
+		FORWARDED_HEADER_NAMES.add("X-Forwarded-Ssl");
