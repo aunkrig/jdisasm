@@ -323,6 +323,13 @@ class SignatureParser {
                 }
             }
             sb.append(')');
+
+            if (!this.thrownTypes.isEmpty()) {
+                Iterator<ThrowsSignature> it2 = this.thrownTypes.iterator();
+                sb.append(" throws ").append(it2.next());
+                while (it.hasNext()) sb.append(", ").append(it2.next());
+            }
+
             if (this.returnType != SignatureParser.VOID) sb.append(" => ").append(this.returnType.toString());
             return sb.toString();
         }
