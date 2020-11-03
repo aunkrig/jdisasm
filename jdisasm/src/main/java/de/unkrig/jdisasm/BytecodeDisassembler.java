@@ -47,6 +47,7 @@ import java.util.TreeMap;
 
 import de.unkrig.commons.nullanalysis.NotNullByDefault;
 import de.unkrig.commons.nullanalysis.Nullable;
+import de.unkrig.jdisasm.ClassFile.AccessFlags.FlagType;
 import de.unkrig.jdisasm.ClassFile.AppendFrame;
 import de.unkrig.jdisasm.ClassFile.BootstrapMethodsAttribute.BootstrapMethod;
 import de.unkrig.jdisasm.ClassFile.ChopFrame;
@@ -170,8 +171,22 @@ class BytecodeDisassembler {
 
             final String[] none = new String[0];
 
-            String[] locals = new String[this.parameterTypes.length];
-            for (int i = 0; i < locals.length; i++) locals[i] = this.parameterTypes[i].toString();
+            String[] locals;
+            {
+                List<String> l = new ArrayList<String>();
+
+                if ("<init>".equals(this.method.name)) {
+                    l.add("uninitializedThis");
+                } else
+                if (!this.method.accessFlags.is(FlagType.STATIC)) {
+                    l.add(this.method.getClassFile().thisClassName);
+                }
+
+                for (TypeSignature ts : this.parameterTypes) l.add(ts.toString());
+
+                locals = l.toArray(new String[l.size()]);
+            }
+
             String[] stack = none;
             stackMap.put(0, "Locals=" + Arrays.toString(locals) + " Stack=" + Arrays.toString(stack));
 
