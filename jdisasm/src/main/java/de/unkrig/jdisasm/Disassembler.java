@@ -514,21 +514,18 @@ class Disassembler {
      */
     public void
     disasm(InputStream stream) throws IOException {
-        try {
-            this.disassembleClassFile(new DataInputStream(stream));
-        } finally {
-            this.pw.flush();
-        }
+
+        DataInputStream
+        dis = stream instanceof DataInputStream ? (DataInputStream) stream : new DataInputStream(stream);
+
+        this.disasm(new ClassFile(dis));
     }
 
     /**
      * @param dis A Java class file
      */
-    private void
-    disassembleClassFile(DataInputStream dis) throws IOException {
-
-        // Load the class file.
-        ClassFile cf = new ClassFile(dis);
+    public void
+    disasm(ClassFile cf) throws IOException {
 
         // Print JDK version.
         this.println();

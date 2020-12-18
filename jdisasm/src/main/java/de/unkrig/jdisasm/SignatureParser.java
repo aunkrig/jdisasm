@@ -1004,7 +1004,9 @@ class SignatureParser {
             return SignatureParser.parseTypeVariableSignature(scs);
         default:
             throw new SignatureException(
-                "Class type signature, array type signature or type variable signature expected"
+                "Parsing field type signature \""
+                + scs
+                + "\": Class type signature, array type signature or type variable signature expected"
             );
         }
     }
