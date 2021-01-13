@@ -139,7 +139,7 @@ class Disassembler {
     /**
      * Where to print the output.
      */
-    private PrintWriter pw = new PrintWriter(System.out);
+    private PrintWriter pw = new PrintWriter(System.out, true);
 
     boolean showClassPoolIndexes;
 
@@ -360,20 +360,22 @@ class Disassembler {
      * @param writer Where to write all output
      */
     public void
-    setOut(Writer writer) { this.pw = writer instanceof PrintWriter ? (PrintWriter) writer : new PrintWriter(writer); }
+    setOut(Writer writer) {
+        this.pw = writer instanceof PrintWriter ? (PrintWriter) writer : new PrintWriter(writer, true);
+    }
 
     /**
      * @param stream Where to write all output
      */
     public void
-    setOut(OutputStream stream) { this.pw = new PrintWriter(stream); }
+    setOut(OutputStream stream) { this.pw = new PrintWriter(stream, true); }
 
     /**
      * @param stream Where to write all output
      */
     public void
     setOut(OutputStream stream, String charsetName) throws UnsupportedEncodingException {
-        this.pw = new PrintWriter(new OutputStreamWriter(stream, charsetName));
+        this.pw = new PrintWriter(new OutputStreamWriter(stream, charsetName), true);
     }
 
     /**
@@ -474,8 +476,8 @@ class Disassembler {
     disasm(File file) throws IOException {
         InputStream is = new FileInputStream(file);
         try {
-            this.pw.println();
-            this.pw.println("// *** Disassembly of '" + file + "'.");
+            this.println();
+            this.println("// *** Disassembly of '" + file + "'.");
             this.disasm(is);
         } catch (IOException ioe) {
             IOException ioe2 = new IOException("Disassembling '" + file + "': " + ioe.getMessage());
@@ -495,8 +497,8 @@ class Disassembler {
     disasm(URL location) throws IOException {
         InputStream is = location.openConnection().getInputStream();
         try {
-            this.pw.println();
-            this.pw.println("// *** Disassembly of '" + location + "'.");
+            this.println();
+            this.println("// *** Disassembly of '" + location + "'.");
             this.disasm(is);
         } catch (IOException ioe) {
             IOException ioe2 = new IOException("Disassembling '" + location + "': " + ioe.getMessage());
@@ -1567,9 +1569,7 @@ class Disassembler {
     }
 
     private void
-    error(String message) {
-        this.pw.println("*** Error: " + message);
-    }
+    error(String message) { this.println("*** Error: " + message); }
 
     private static String
     typeAccessFlagsToString(AccessFlags af) {
