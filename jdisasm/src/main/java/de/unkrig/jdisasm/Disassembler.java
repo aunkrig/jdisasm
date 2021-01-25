@@ -523,9 +523,6 @@ class Disassembler {
         this.disasm(new ClassFile(dis));
     }
 
-    /**
-     * @param dis A Java class file
-     */
     public void
     disasm(ClassFile cf) throws IOException {
 
