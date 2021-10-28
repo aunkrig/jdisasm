@@ -709,7 +709,7 @@ class SignatureParser {
          */
         public
         TypeArgument(Mode mode, @Nullable FieldTypeSignature fieldTypeSignature) {
-            assert mode == Mode.ANY ^ fieldTypeSignature == null;
+            assert mode == Mode.ANY ^ fieldTypeSignature != null;
             this.mode               = mode;
             this.fieldTypeSignature = fieldTypeSignature;
         }
