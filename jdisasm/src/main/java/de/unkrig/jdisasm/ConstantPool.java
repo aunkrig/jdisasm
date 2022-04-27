@@ -932,7 +932,7 @@ class ConstantPool {
         if (e == null) throw new NullPointerException("Unusable CP entry " + index);
         if (!clasS.isAssignableFrom(e.getClass())) {
             throw new RuntimeException(
-                "CP entry #" + index + " is a " + e.getClass().getSimpleName() + ", not a " + clasS.getSimpleName()
+                "CP entry #" + index + " is a " + e.getClass().getSimpleName() + " (\"" + e + "\"), not a " + clasS.getSimpleName()
             );
         }
 

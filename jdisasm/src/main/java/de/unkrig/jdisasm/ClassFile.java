@@ -300,135 +300,140 @@ class ClassFile {
         // Access flags.
         this.accessFlags = new AccessFlags(dis.readShort());
 
-        // Class name.
-        this.thisClassName = this.constantPool.get(dis.readShort(), ConstantClassInfo.class).toString();
-        {
-            int idx = this.thisClassName.lastIndexOf('.') + 1;
-            this.thisClassPackageNamePrefix = this.thisClassName.substring(0, idx);
-            this.simpleThisClassName        = this.thisClassName.substring(idx);
+        try {
+
+	        // Class name.
+	        this.thisClassName = this.constantPool.get(dis.readShort(), ConstantClassInfo.class).toString();
+	        {
+	            int idx = this.thisClassName.lastIndexOf('.') + 1;
+	            this.thisClassPackageNamePrefix = this.thisClassName.substring(0, idx);
+	            this.simpleThisClassName        = this.thisClassName.substring(idx);
+	        }
+
+	        // Superclass.
+	        {
+	            ConstantClassInfo superclassCci = this.constantPool.getOptional(dis.readShort(), ConstantClassInfo.class);
+	            this.superClassName = superclassCci == null ? null : superclassCci.toString();
+	        }
+
+	        // Implemented interfaces.
+	        for (short i = dis.readShort(); i > 0; --i) {
+	            this.interfaceNames.add(this.constantPool.get(dis.readShort(), ConstantClassInfo.class).toString());
+	        }
+
+	        // Fields.
+	        {
+	            short n = dis.readShort();
+	            for (short i = 0; i < n; i++) {
+	                try {
+	                    this.fields.add(new Field(dis));
+	                } catch (IOException ioe) {
+	                    IOException ioe2 = new IOException("Reading field #" + i + " of " + n + ": " + ioe.getMessage());
+	                    ioe2.initCause(ioe);
+	                    throw ioe2; // SUPPRESS CHECKSTYLE AvoidHidingCause
+	                } catch (RuntimeException re) {
+	                    throw new RuntimeException("Reading field #" + i + " of " + n + ": " + re.getMessage(), re);
+	                }
+	            }
+	        }
+
+	        // Methods.
+	        {
+	            short n = dis.readShort();
+	            for (short i = 0; i < n; i++) {
+	                try {
+	                    this.methods.add(new Method(dis));
+	                } catch (IOException ioe) {
+	                    IOException ioe2 = new IOException("Reading method #" + i + " of " + n + ": " + ioe.getMessage());
+	                    ioe2.initCause(ioe);
+	                    throw ioe2; // SUPPRESS CHECKSTYLE AvoidHidingCause
+	                } catch (RuntimeException re) {
+	                    throw new RuntimeException((
+	                        "Class \""
+	                        + this.thisClassName
+	                        + "\": Reading method #"
+	                        + i
+	                        + " of "
+	                        + n
+	                        + ": "
+	                        + re.getMessage()
+	                    ), re);
+	                }
+	            }
+	        }
+
+	        // Class attributes.
+	        this.readAttributes(dis, new AbstractAttributeVisitor() {
+
+	            @Override public void
+	            visit(BootstrapMethodsAttribute bma) {
+	                ClassFile.this.bootstrapMethodsAttribute = bma;
+	                ClassFile.this.allAttributes.add(bma);
+	            }
+
+	            @Override public void
+	            visit(DeprecatedAttribute da) {
+	                ClassFile.this.deprecatedAttribute = da;
+	                ClassFile.this.allAttributes.add(da);
+	            }
+
+	            @Override public void
+	            visit(EnclosingMethodAttribute ema) {
+	                ClassFile.this.enclosingMethodAttribute = ema;
+	                ClassFile.this.allAttributes.add(ema);
+	            }
+
+	            @Override public void
+	            visit(InnerClassesAttribute ica) {
+	                ClassFile.this.innerClassesAttribute = ica;
+	                ClassFile.this.allAttributes.add(ica);
+	            }
+
+	            @Override public void
+	            visit(ModulePackagesAttribute mpa) {
+	                ClassFile.this.modulePackagesAttribute = mpa;
+	                ClassFile.this.allAttributes.add(mpa);
+	            }
+
+	            @Override public void
+	            visit(RuntimeInvisibleAnnotationsAttribute riaa) {
+	                ClassFile.this.runtimeInvisibleAnnotationsAttribute = riaa;
+	                ClassFile.this.allAttributes.add(riaa);
+	            }
+
+	            @Override public void
+	            visit(RuntimeVisibleAnnotationsAttribute rvaa) {
+	                ClassFile.this.runtimeVisibleAnnotationsAttribute = rvaa;
+	                ClassFile.this.allAttributes.add(rvaa);
+	            }
+
+	            @Override public void
+	            visit(SignatureAttribute sa) {
+	                ClassFile.this.signatureAttribute = sa;
+	                ClassFile.this.allAttributes.add(sa);
+	            }
+
+	            @Override public void
+	            visit(SourceFileAttribute sfa) {
+	                ClassFile.this.sourceFileAttribute = sfa;
+	                ClassFile.this.allAttributes.add(sfa);
+	            }
+
+	            @Override public void
+	            visit(SyntheticAttribute sa) {
+	                ClassFile.this.syntheticAttribute = sa;
+	                ClassFile.this.allAttributes.add(sa);
+	            }
+
+	            @Override public void
+	            visitOther(Attribute a) {
+	                ClassFile.this.allAttributes.add(a);
+	                ClassFile.this.unprocessedAttributes.add(a);
+	            }
+	        });
+        } catch (RuntimeException re) {
+        	throw new RuntimeException("Class \"" + this.thisClassName + "\": " + re.getMessage(), re);
         }
-
-        // Superclass.
-        {
-            ConstantClassInfo superclassCci = this.constantPool.getOptional(dis.readShort(), ConstantClassInfo.class);
-            this.superClassName = superclassCci == null ? null : superclassCci.toString();
-        }
-
-        // Implemented interfaces.
-        for (short i = dis.readShort(); i > 0; --i) {
-            this.interfaceNames.add(this.constantPool.get(dis.readShort(), ConstantClassInfo.class).toString());
-        }
-
-        // Fields.
-        {
-            short n = dis.readShort();
-            for (short i = 0; i < n; i++) {
-                try {
-                    this.fields.add(new Field(dis));
-                } catch (IOException ioe) {
-                    IOException ioe2 = new IOException("Reading field #" + i + " of " + n + ": " + ioe.getMessage());
-                    ioe2.initCause(ioe);
-                    throw ioe2; // SUPPRESS CHECKSTYLE AvoidHidingCause
-                } catch (RuntimeException re) {
-                    throw new RuntimeException("Reading field #" + i + " of " + n + ": " + re.getMessage(), re);
-                }
-            }
-        }
-
-        // Methods.
-        {
-            short n = dis.readShort();
-            for (short i = 0; i < n; i++) {
-                try {
-                    this.methods.add(new Method(dis));
-                } catch (IOException ioe) {
-                    IOException ioe2 = new IOException("Reading method #" + i + " of " + n + ": " + ioe.getMessage());
-                    ioe2.initCause(ioe);
-                    throw ioe2; // SUPPRESS CHECKSTYLE AvoidHidingCause
-                } catch (RuntimeException re) {
-                    throw new RuntimeException((
-                        "Class \""
-                        + this.thisClassName
-                        + "\": Reading method #"
-                        + i
-                        + " of "
-                        + n
-                        + ": "
-                        + re.getMessage()
-                    ), re);
-                }
-            }
-        }
-
-        // Class attributes.
-        this.readAttributes(dis, new AbstractAttributeVisitor() {
-
-            @Override public void
-            visit(BootstrapMethodsAttribute bma) {
-                ClassFile.this.bootstrapMethodsAttribute = bma;
-                ClassFile.this.allAttributes.add(bma);
-            }
-
-            @Override public void
-            visit(DeprecatedAttribute da) {
-                ClassFile.this.deprecatedAttribute = da;
-                ClassFile.this.allAttributes.add(da);
-            }
-
-            @Override public void
-            visit(EnclosingMethodAttribute ema) {
-                ClassFile.this.enclosingMethodAttribute = ema;
-                ClassFile.this.allAttributes.add(ema);
-            }
-
-            @Override public void
-            visit(InnerClassesAttribute ica) {
-                ClassFile.this.innerClassesAttribute = ica;
-                ClassFile.this.allAttributes.add(ica);
-            }
-
-            @Override public void
-            visit(ModulePackagesAttribute mpa) {
-                ClassFile.this.modulePackagesAttribute = mpa;
-                ClassFile.this.allAttributes.add(mpa);
-            }
-
-            @Override public void
-            visit(RuntimeInvisibleAnnotationsAttribute riaa) {
-                ClassFile.this.runtimeInvisibleAnnotationsAttribute = riaa;
-                ClassFile.this.allAttributes.add(riaa);
-            }
-
-            @Override public void
-            visit(RuntimeVisibleAnnotationsAttribute rvaa) {
-                ClassFile.this.runtimeVisibleAnnotationsAttribute = rvaa;
-                ClassFile.this.allAttributes.add(rvaa);
-            }
-
-            @Override public void
-            visit(SignatureAttribute sa) {
-                ClassFile.this.signatureAttribute = sa;
-                ClassFile.this.allAttributes.add(sa);
-            }
-
-            @Override public void
-            visit(SourceFileAttribute sfa) {
-                ClassFile.this.sourceFileAttribute = sfa;
-                ClassFile.this.allAttributes.add(sfa);
-            }
-
-            @Override public void
-            visit(SyntheticAttribute sa) {
-                ClassFile.this.syntheticAttribute = sa;
-                ClassFile.this.allAttributes.add(sa);
-            }
-
-            @Override public void
-            visitOther(Attribute a) {
-                ClassFile.this.allAttributes.add(a);
-                ClassFile.this.unprocessedAttributes.add(a);
-            }
-        });
     }
 
     /**
@@ -895,7 +900,7 @@ class ClassFile {
             ioe2.initCause(ioe);
             throw ioe2; // SUPPRESS CHECKSTYLE AvoidHidingCause
         } catch (RuntimeException re) {
-            throw new RuntimeException("Reading attribute '" + attributeName + "': " + re.getMessage(), re);
+            throw new RuntimeException("Reading attribute \"" + attributeName + "\": " + re.getMessage(), re);
         }
     }
 
@@ -1384,8 +1389,12 @@ class ClassFile {
 
             public
             ElementValuePair(DataInputStream dis, ClassFile cf) throws IOException {
-                this.elementName  = cf.constantPool.get(dis.readShort(), ConstantUtf8Info.class).bytes;
-                this.elementValue = ClassFile.this.newElementValue(dis, cf);
+                this.elementName = cf.constantPool.get(dis.readShort(), ConstantUtf8Info.class).bytes;
+                try {
+                	this.elementValue = ClassFile.this.newElementValue(dis, cf);
+                } catch (RuntimeException re) {
+                	throw new RuntimeException("Reading annotation element \"" + this.elementName + "\": " + re.getMessage(), re);
+                }
             }
 
             @Override public String
