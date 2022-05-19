@@ -197,7 +197,7 @@ class BytecodeDisassembler {
                 {
                     final String[] finalLocals = locals;
                     locals = smf.accept(new StackMapFrameVisitor<String[]>() {
-                        @Override public String[] visitSameFrame(SameFrame sf)                                                      { return finalLocals;                                                                                  } // SUPPRESS CHECKSTYLE LineLength:6
+                        @Override public String[] visitSameFrame(SameFrame sf)                                                      { return finalLocals;                                                                                  }
                         @Override public String[] visitSameLocals1StackItemFrame(SameLocals1StackItemFrame sl1sif)                  { return finalLocals;                                                                                  }
                         @Override public String[] visitSameLocals1StackItemFrameExtended(SameLocals1StackItemFrameExtended sl1sife) { return finalLocals;                                                                                  }
                         @Override public String[] visitChopFrame(ChopFrame cf)                                                      { return Arrays.copyOf(finalLocals, finalLocals.length - cf.k);                                        }
@@ -208,7 +208,7 @@ class BytecodeDisassembler {
                 }
 
                 stack = smf.accept(new StackMapFrameVisitor<String[]>() {
-                    @Override public String[] visitSameFrame(SameFrame sf)                                                      { return none;                                              } // SUPPRESS CHECKSTYLE LineLength:6
+                    @Override public String[] visitSameFrame(SameFrame sf)                                                      { return none;                                              }
                     @Override public String[] visitSameLocals1StackItemFrame(SameLocals1StackItemFrame sl1sif)                  { return new String[] { String.valueOf(sl1sif.stack) };     }
                     @Override public String[] visitSameLocals1StackItemFrameExtended(SameLocals1StackItemFrameExtended sl1sife) { return new String[] { String.valueOf(sl1sife.stack) };    }
                     @Override public String[] visitChopFrame(ChopFrame cf)                                                      { return none;                                              }
@@ -341,7 +341,7 @@ class BytecodeDisassembler {
                     }
                 } else {
                     if (this.d.showLineNumbers) {
-                        pw.println(indentation + "//                                      Line " + lineNumber + ": " + sourceLine); // SUPPRESS CHECKSTYLE LineLength
+                        pw.println(indentation + "//                                      Line " + lineNumber + ": " + sourceLine);
                     } else {
                         pw.println(indentation + "//                                      " + sourceLine);
                     }

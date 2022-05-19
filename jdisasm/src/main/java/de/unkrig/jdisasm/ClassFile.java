@@ -1898,7 +1898,7 @@ class ClassFile {
             case 4: return new LongVariableInfo();
             case 5: return new NullVariableInfo();
             case 6: return new UninitializedThisVariableInfo();
-            case 7: return new ObjectVariableInfo(ClassFile.this.constantPool.get(dis.readShort(), ConstantClassInfo.class)); // SUPPRESS CHECKSTYLE LineLength
+            case 7: return new ObjectVariableInfo(ClassFile.this.constantPool.get(dis.readShort(), ConstantClassInfo.class));
             case 8: return new UninitializedVariableInfo(dis.readShort());
 
             default:

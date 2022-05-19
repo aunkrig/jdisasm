@@ -126,7 +126,6 @@ import de.unkrig.jdisasm.SignatureParser.TypeSignature;
 public
 class Disassembler {
 
-    // SUPPRESS CHECKSTYLE LineLength:6
     private static final List<ConstantClassInfo>   NO_CONSTANT_CLASS_INFOS   = Collections.<ConstantClassInfo>emptyList();
     private static final List<ThrowsSignature>     NO_THROWS_SIGNATURES      = Collections.<ThrowsSignature>emptyList();
     private static final List<TypeSignature>       NO_TYPE_SIGNATURES        = Collections.<TypeSignature>emptyList();

@@ -204,7 +204,7 @@ class ConstantPool {
      */
     public static
     class ConstantStringInfo
-    implements ConstantClassOrFloatOrIntegerOrStringOrMethodHandleOrMethodTypeOrDynamicInfo, ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo { // SUPPRESS CHECKSTYLE LineLength
+    implements ConstantClassOrFloatOrIntegerOrStringOrMethodHandleOrMethodTypeOrDynamicInfo, ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo {
 
         /**
          * {@code CONSTANT_String_info.string_index}, see JVMS7 4.4.3
@@ -226,7 +226,7 @@ class ConstantPool {
      */
     public static
     class ConstantIntegerInfo
-    implements ConstantClassOrFloatOrIntegerOrStringOrMethodHandleOrMethodTypeOrDynamicInfo, ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo { // SUPPRESS CHECKSTYLE LineLength
+    implements ConstantClassOrFloatOrIntegerOrStringOrMethodHandleOrMethodTypeOrDynamicInfo, ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo {
 
         /**
          * {@code CONSTANT_Integer_info.bytes}, see JVMS7 4.4.4
@@ -248,7 +248,7 @@ class ConstantPool {
      */
     public static
     class ConstantFloatInfo
-    implements ConstantClassOrFloatOrIntegerOrStringOrMethodHandleOrMethodTypeOrDynamicInfo, ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo { // SUPPRESS CHECKSTYLE LineLength
+    implements ConstantClassOrFloatOrIntegerOrStringOrMethodHandleOrMethodTypeOrDynamicInfo, ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo {
 
         /**
          * {@code CONSTANT_Float_info.bytes}, see JVMS7 4.4.4
@@ -270,7 +270,7 @@ class ConstantPool {
      */
     public static
     class ConstantLongInfo
-    implements ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrLongOrDynamicInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo { // SUPPRESS CHECKSTYLE LineLength
+    implements ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrLongOrDynamicInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo {
 
         /**
          * {@code CONSTANT_Long_info.bytes}, see JVMS7 4.4.5
@@ -291,7 +291,7 @@ class ConstantPool {
      */
     public static
     class ConstantDoubleInfo
-    implements ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrLongOrDynamicInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo { // SUPPRESS CHECKSTYLE LineLength
+    implements ConstantDoubleOrFloatOrIntegerOrLongOrStringInfo, ConstantDoubleOrLongOrDynamicInfo, ConstantDoubleOrFloatOrIntegerOrLongInfo {
 
         /**
          * {@code CONSTANT_Double_info.bytes}, see JVMS7 4.4.5
@@ -337,7 +337,7 @@ class ConstantPool {
             try {
                 return (
                     this.descriptor.bytes.indexOf('(') == -1
-                    ? ConstantPool.this.signatureParser.decodeFieldDescriptor(this.descriptor.bytes) + " " + this.name.bytes // SUPPRESS CHECKSTYLE LineLength
+                    ? ConstantPool.this.signatureParser.decodeFieldDescriptor(this.descriptor.bytes) + " " + this.name.bytes
                     : this.name.bytes + ConstantPool.this.signatureParser.decodeMethodDescriptor(this.descriptor.bytes)
                 );
             } catch (SignatureException e) {
@@ -436,7 +436,7 @@ class ConstantPool {
      */
     public static
     class ConstantDynamicInfo
-    implements ConstantPoolEntry, ConstantClassOrFloatOrIntegerOrStringOrMethodHandleOrMethodTypeOrDynamicInfo, ConstantDoubleOrLongOrDynamicInfo { // SUPPRESS CHECKSTYLE LineLength
+    implements ConstantPoolEntry, ConstantClassOrFloatOrIntegerOrStringOrMethodHandleOrMethodTypeOrDynamicInfo, ConstantDoubleOrLongOrDynamicInfo {
 
         /**
          * {@code CONSTANT_Dynamic_info.bytes}, see JVMS8 4.4.10
