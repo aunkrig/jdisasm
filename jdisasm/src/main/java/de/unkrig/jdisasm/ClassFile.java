@@ -79,6 +79,29 @@ class ClassFile {
      */
     public ConstantPool constantPool;
 
+    public String
+    getJavaVersion() {
+        if (this.majorVersion <= 44) {
+            ;
+        } else
+        if (this.majorVersion <= 48) {
+            return "1." + (this.majorVersion - 44);
+        } else
+        if (this.majorVersion == 49) {
+            return "5.0";
+        } else
+        if (this.majorVersion == 55) {
+            return Integer.toString(this.majorVersion - 44);
+        } else
+        {
+            if (this.minorVersion == 0 || this.minorVersion == 65536) {
+                return Integer.toString(this.majorVersion - 44);
+            }
+        }
+
+        return ("Invalid major/minor " + this.majorVersion + "/" + this.minorVersion);
+    }
+
     /**
      * A <a href="http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.1-200-E">mask of flags used to
      * denote access permissions to and properties of this class or interface</a>.
