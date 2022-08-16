@@ -264,6 +264,9 @@ class Disassembler {
             if ("-dump-constant-pool".equals(arg)) {
                 d.setDumpConstantPool(true);
             } else
+        	if ("-print-all-offsets".equals(arg)) {
+        		d.setPrintAllOffsets(true);
+        	} else
             if ("-print-all-attributes".equals(arg)) {
                 d.setPrintAllAttributes(true);
             } else
@@ -295,6 +298,7 @@ class Disassembler {
                     + "  -show-class-pool-indexes Within the bytecode diassembly, print the index%n"
                     + "                           for each constant pool reference.%n"
                     + "  -dump-constant-pool      Print the constant pool.%n"
+                    + "  -print-all-offsets       Include bytecode offsets.%n"
                     + "  -print-all-attributes    Also print the UNRECOGNIZED attributes.%n"
                     + "  -print-stack-map         Print the StackMapTable attribute.%n"
                     + "  -verbose                 Equivalent with \"-show-class-pool-indexes%n"
