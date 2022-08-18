@@ -106,7 +106,6 @@
 							<author>false</author>
 							<use>false</use>
 							<version>false</version>
-							<additionalparam>-Xdoclint:none</additionalparam>
 							<quiet>true</quiet>
 							<encoding>UTF-8</encoding>
 						</configuration>
