@@ -196,7 +196,7 @@ class BytecodeDisassembler {
 
                 {
                     final String[] finalLocals = locals;
-                    locals = smf.accept(new StackMapFrameVisitor<String[]>() {
+                    locals = smf.accept(new StackMapFrameVisitor<String[]>() { // SUPPRESS CHECKSTYLE LineLength:7
                         @Override public String[] visitSameFrame(SameFrame sf)                                                      { return finalLocals;                                                                                  }
                         @Override public String[] visitSameLocals1StackItemFrame(SameLocals1StackItemFrame sl1sif)                  { return finalLocals;                                                                                  }
                         @Override public String[] visitSameLocals1StackItemFrameExtended(SameLocals1StackItemFrameExtended sl1sife) { return finalLocals;                                                                                  }
@@ -207,7 +207,7 @@ class BytecodeDisassembler {
                     });
                 }
 
-                stack = smf.accept(new StackMapFrameVisitor<String[]>() {
+                stack = smf.accept(new StackMapFrameVisitor<String[]>() { // SUPPRESS CHECKSTYLE LineLength:7
                     @Override public String[] visitSameFrame(SameFrame sf)                                                      { return none;                                              }
                     @Override public String[] visitSameLocals1StackItemFrame(SameLocals1StackItemFrame sl1sif)                  { return new String[] { String.valueOf(sl1sif.stack) };     }
                     @Override public String[] visitSameLocals1StackItemFrameExtended(SameLocals1StackItemFrameExtended sl1sife) { return new String[] { String.valueOf(sl1sife.stack) };    }
@@ -341,7 +341,7 @@ class BytecodeDisassembler {
                     }
                 } else {
                     if (this.d.showLineNumbers) {
-                        pw.println(indentation + "//                                      Line " + lineNumber + ": " + sourceLine);
+                        pw.println(indentation + "//                                      Line " + lineNumber + ": " + sourceLine); // SUPPRESS CHECKSTYLE LineLength
                     } else {
                         pw.println(indentation + "//                                      " + sourceLine);
                     }

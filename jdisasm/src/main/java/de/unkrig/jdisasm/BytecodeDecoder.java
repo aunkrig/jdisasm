@@ -220,7 +220,7 @@ class BytecodeDecoder<R, EX extends Throwable> {
         case 9:    return this.decoded("lconst_0");
         case 10:   return this.decoded("lconst_1");
         case 18:   return this.decoded("ldc",             OperandKind.CLASSFLOATINTSTRINGMETHODHANDLEMETHODTYPEDYNAMIC);
-        case 19:   return this.decoded("ldc_w",           OperandKind.CLASSFLOATINTSTRINGMETHODHANDLEMETHODTYPEDYNAMIC_W);
+        case 19:   return this.decoded("ldc_w",           OperandKind.CLASSFLOATINTSTRINGMETHODHANDLEMETHODTYPEDYNAMIC_W); // SUPPRESS CHECKSTYLE LineLength
         case 20:   return this.decoded("ldc2_w",          OperandKind.DOUBLELONGDYNAMIC_W);
         case 22:   return this.decoded("lload",           OperandKind.LOCALVARIABLEINDEX1);
         case 30:   return this.decoded("lload_0",         OperandKind.IMPLICITLOCALVARIABLEINDEX_0);

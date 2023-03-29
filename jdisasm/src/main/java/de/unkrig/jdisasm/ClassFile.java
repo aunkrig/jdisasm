@@ -335,7 +335,8 @@ class ClassFile {
 
             // Superclass.
             {
-                ConstantClassInfo superclassCci = this.constantPool.getOptional(dis.readShort(), ConstantClassInfo.class);
+                ConstantClassInfo
+                superclassCci = this.constantPool.getOptional(dis.readShort(), ConstantClassInfo.class);
                 this.superClassName = superclassCci == null ? null : superclassCci.toString();
             }
 
@@ -351,7 +352,9 @@ class ClassFile {
                     try {
                         this.fields.add(new Field(dis));
                     } catch (IOException ioe) {
-                        IOException ioe2 = new IOException("Reading field #" + i + " of " + n + ": " + ioe.getMessage());
+                        IOException ioe2 = new IOException(
+                            "Reading field #" + i + " of " + n + ": " + ioe.getMessage()
+                        );
                         ioe2.initCause(ioe);
                         throw ioe2; // SUPPRESS CHECKSTYLE AvoidHidingCause
                     } catch (RuntimeException re) {
@@ -367,7 +370,9 @@ class ClassFile {
                     try {
                         this.methods.add(new Method(dis));
                     } catch (IOException ioe) {
-                        IOException ioe2 = new IOException("Reading method #" + i + " of " + n + ": " + ioe.getMessage());
+                        IOException ioe2 = new IOException(
+                            "Reading method #" + i + " of " + n + ": " + ioe.getMessage()
+                        );
                         ioe2.initCause(ioe);
                         throw ioe2; // SUPPRESS CHECKSTYLE AvoidHidingCause
                     } catch (RuntimeException re) {
@@ -1416,7 +1421,10 @@ class ClassFile {
                 try {
                     this.elementValue = ClassFile.this.newElementValue(dis, cf);
                 } catch (RuntimeException re) {
-                    throw new RuntimeException("Reading annotation element \"" + this.elementName + "\": " + re.getMessage(), re);
+                    throw new RuntimeException(
+                        "Reading annotation element \"" + this.elementName + "\": " + re.getMessage(),
+                        re
+                    );
                 }
             }
 
@@ -1921,7 +1929,7 @@ class ClassFile {
             case 4: return new LongVariableInfo();
             case 5: return new NullVariableInfo();
             case 6: return new UninitializedThisVariableInfo();
-            case 7: return new ObjectVariableInfo(ClassFile.this.constantPool.get(dis.readShort(), ConstantClassInfo.class));
+            case 7: return new ObjectVariableInfo(ClassFile.this.constantPool.get(dis.readShort(), ConstantClassInfo.class)); // SUPPRESS CHECKSTYLE LineLength
             case 8: return new UninitializedVariableInfo(dis.readShort());
 
             default:

@@ -126,7 +126,7 @@ import de.unkrig.jdisasm.SignatureParser.TypeSignature;
 public
 class Disassembler {
 
-    private static final List<ConstantClassInfo>   NO_CONSTANT_CLASS_INFOS   = Collections.<ConstantClassInfo>emptyList();
+    private static final List<ConstantClassInfo>   NO_CONSTANT_CLASS_INFOS   = Collections.<ConstantClassInfo>emptyList(); // SUPPRESS CHECKSTYLE LineLength:5
     private static final List<ThrowsSignature>     NO_THROWS_SIGNATURES      = Collections.<ThrowsSignature>emptyList();
     private static final List<TypeSignature>       NO_TYPE_SIGNATURES        = Collections.<TypeSignature>emptyList();
     private static final List<ClassTypeSignature>  NO_CLASS_TYPE_SIGNATURES  = Collections.<ClassTypeSignature>emptyList();
@@ -264,9 +264,9 @@ class Disassembler {
             if ("-dump-constant-pool".equals(arg)) {
                 d.setDumpConstantPool(true);
             } else
-        	if ("-print-all-offsets".equals(arg)) {
-        		d.setPrintAllOffsets(true);
-        	} else
+            if ("-print-all-offsets".equals(arg)) {
+                d.setPrintAllOffsets(true);
+            } else
             if ("-print-all-attributes".equals(arg)) {
                 d.setPrintAllAttributes(true);
             } else

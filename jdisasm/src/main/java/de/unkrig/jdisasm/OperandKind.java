@@ -38,7 +38,7 @@ package de.unkrig.jdisasm;
 public
 enum OperandKind {
 
-    // SUPPRESS CHECKSTYLE Javadoc:31
+    // SUPPRESS CHECKSTYLE Javadoc|LineLength:31
     CLASSFLOATINTSTRINGMETHODHANDLEMETHODTYPEDYNAMIC   { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitClassFloatIntStringMethodHandleMethodTypeDynamic(this);  } },
     CLASSFLOATINTSTRINGMETHODHANDLEMETHODTYPEDYNAMIC_W { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitClassFloatIntStringMethodHandleMethodTypeDynamicW(this); } },
     DOUBLELONGDYNAMIC_W                                { @Override public <R, EX extends Throwable> R accept(Visitor<R, EX> v) throws EX { return v.visitDoubleLongDynamicW(this);                                } },
